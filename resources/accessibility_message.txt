@@ -1,0 +1,3 @@
+inCollege is committed to ensuring an accessible experience for all users who use our application. We are continually evaluating our offerings
+for accessibility, educating our developers about the importance of accessibility, and continually improving the accessibility of our experiences.
+inCollege is committed to helping all college students find jobs, and accessibility is an essential component of our mission.
