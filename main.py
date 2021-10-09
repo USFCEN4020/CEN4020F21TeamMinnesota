@@ -200,7 +200,7 @@ class App:
 
         error_message = profile.save(experience)
         if error_message == None:
-            print("Exprience Added Succesfully!")
+            print("Experience Added Succesfully!")
 
         else:
             print(error_message)
@@ -209,18 +209,25 @@ class App:
 
     @screen
     def delete_experience_screen(self):
+        if(len(self.current_user.profile.experience) == 0):
+            print("You currently have no jobs to delete")
+            return self.go_back()
+
         print("Which employer would you like to delete?")
         validEmployer = False
 
         while validEmployer != True:
             count = 0
-            for experience in self.current_user.profile.exprience:
+            for experience in self.current_user.profile.experience:
                 print(count, ".", experience.employer)
                 count = count + 1
 
-            employerToDelete = int(input(SELECT_OPTION_MESSAGE))
+
+            employerToDelete =  self.handle_input(SELECT_OPTION_MESSAGE, int)
+
+
             try:
-                self.current_user.profile.exprience.pop(employerToDelete)
+                self.current_user.profile.expereience.pop(int(employerToDelete))
                 validEmployer = True
                 print("Remove Successful!")
                 User.update_users_file()
@@ -396,20 +403,43 @@ class App:
 
         return self.reload_screen()
 
-    # @screen
-    # def continue_profile_screen(self):
-    #     print("Would you like to complete your profile?")
-    #     print("0. Yes")
-    #     print("1. No")
-    #     option = self.handle_input(SELECT_OPTION_MESSAGE)
-    #
-    #     if option == "0":
-    #         User.login(username,password)
-    #         return self.edit_profile_screen()
-    #     elif option == "1":
-    #         return self.main_menu()
-    #
-    #     return self.reload_screen()
+    @screen
+    def view_profile_screen(self):
+        profile = self.current_user.profile
+        if profile == None:
+            print("You do not have a profile to view yet. Please return to dashboard and select 'Edit Profile'")
+            input("Press any key to go back: ")
+            return self.go_back()
+
+        print("\t\t\t\t\t\t\t\t\t\t\t", self.current_user.first_name, self.current_user.last_name)
+        print("Title: ", profile.title)
+        print("Major: ", profile.major)
+        print("University: ", profile.university)
+        print("Summary: ", profile.about)
+        print("\nEXPERIENCE:\n")
+        for experience in profile.experience:
+            print("\tJob Title: ", experience.title)
+            print("\tEmployer: ", experience.employer)
+            print("\tDate Started: ", experience.dateStarted)
+            print("\tDate Ended: ", experience.dateEnded)
+            print("\tLocation: ", experience.location)
+            print("\tDescription:", experience.description)
+            print("==========================")
+
+        print("\nEDUCATION:\n")
+        for education in profile.education:
+            print("\tUniversity: ", education.schoolName)
+            print("\tDegree: ", education.degree)
+            print("\tYears Attended:", education.yearsAttended)
+            print("==========================")
+
+        option = self.handle_input(GO_BACK_MESSAGE)
+        if option == "b":
+            return self.go_back()
+
+        return self.reload_screen()
+
+
 
     @screen
     def register_user_screen(self):
@@ -845,6 +875,7 @@ class App:
         print("3. Useful Links")
         print("4. InCollege Important Links")
         print("5. Edit Profile")
+        print("6. View Profile")
         print("b. Sign Out")
         choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
 
@@ -863,6 +894,8 @@ class App:
             return self.important_links_screen()
         elif choice == "5":
             return self.edit_profile_screen()
+        elif choice == "6":
+            return self.view_profile_screen()
 
         print("Invalid choice. Try again.")
         return self.reload_screen()
