@@ -1,3 +1,4 @@
+import profile
 from user import User
 from collections import deque
 import textwrap
@@ -18,7 +19,7 @@ TYPE_USERNAME_MESSAGE = "Username: "
 TYPE_PASSWORD_MESSAGE = "Password: "
 TYPE_FIRST_NAME_MESSAGE = "First Name: "
 TYPE_LAST_NAME_MESSAGE = "Last Name: "
-EDIT_PROFILE_MESSAGE = "Please select what feild you would like to edit: "
+EDIT_PROFILE_MESSAGE = "Please select what field you would like to edit: "
 TYPE_TITLE_MESSAGE = "Title(e.g. 3rd year computer science student: "
 TYPE_MAJOR_MESSAGE = "Major: "
 TYPE_NAME_OF_UNIVERSITY = "Current university: "
@@ -44,17 +45,19 @@ TYPE_JOB_TITLE_MESSAGE = "Job Title: "
 TYPE_DATE_STARTED_MESSAGE = "Date Started: "
 TYPE_DATE_ENDED_MESSAGE = "Date Ended: "
 HELP_CENTER_MESSAGE = "We're here to help!"
-GENERAL_OPTION_ABOUT_MESSAGE = (
-    "In College: Welcome to In College, the world's largest "
+GENERAL_OPTION_ABOUT_MESSAGE = "In College: Welcome to In College, the world's largest "\
     "college student network with many users in many countries and territories worldwide"
-)
-PRESS_MESSAGE = (
-    "In College Pressroom: Stay on top of the latest news, updates, and reports!"
-)
-
+PRESS_MESSAGE = "In College Pressroom: Stay on top of the latest news, updates, "\
+    "and reports!"
+EXPERIENCE_ADDED_MESSAGE = "Experience added succesfully!"
+EXPERIENCE_REMOVED_MESSAGE ="Experience removed successful!"
 TYPE_SCHOOL_NAME_MESSAGE = "School Name: "
 TYPE_DEGREE_MESSAGE = "Degree: "
 TYPE_YEARS_ATTENDED_MESSAGE = "Years Attended: "
+EDUCATION_ADDED_MESSAGE = "Education added succesfully!"
+EDUCATION_REMOVED_MESSAGE = "Education removed successful!"
+NO_PROFILE_YET_MESSAGE = "You do not have a profile to view yet. "\
+    "Please return to dashboard and select 'Edit Profile'"
 
 
 def screen(method):
@@ -185,61 +188,66 @@ class App:
 
     @screen
     def add_experience_screen(self):
+        print("Add Experience", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+           
         profile = self.current_user.profile
-        print("Add Experience")
+
         title = input(TYPE_JOB_TITLE_MESSAGE)
         employer = input(TYPE_JOB_EMPLOYER_MESSAGE)
-        dateStarted = input(TYPE_DATE_STARTED_MESSAGE)
-        dateEnded = input(TYPE_DATE_ENDED_MESSAGE)
+        date_started = input(TYPE_DATE_STARTED_MESSAGE)
+        date_ended = input(TYPE_DATE_ENDED_MESSAGE)
         location = input(TYPE_JOB_LOCATION_MESSAGE)
         description = input(TYPE_JOB_DESCRIPTION_MESSAGE)
 
         experience = Experience(
-            title, employer, dateStarted, dateEnded, location, description
+            title, 
+            employer, 
+            date_started, 
+            date_ended, 
+            location, 
+            description
         )
 
-        error_message = profile.save(experience)
-        if error_message == None:
-            print("Experience Added Succesfully!")
-
-        else:
+        error_message = profile.add_experience(experience)
+        if error_message:
             print(error_message)
+        else:
+            print(EXPERIENCE_ADDED_MESSAGE)            
 
         return self.go_back()
 
     @screen
     def delete_experience_screen(self):
-        if(len(self.current_user.profile.experience) == 0):
-            print("You currently have no jobs to delete")
+        print("Delete Experience", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+
+        print("Which experience would you like to delete?")           
+        for index, experience in enumerate(self.current_user.profile.experience):
+            print(f"{index}. {experience.title} at {experience.employer} ", end="")
+            print(f"{experience.date_started} - {experience.date_ended}")
+        print("b. Go Back")
+
+        experience_index = self.handle_input(SELECT_OPTION_MESSAGE, int)
+        if experience_index == GO_BACK_KEY:
             return self.go_back()
-
-        print("Which employer would you like to delete?")
-        validEmployer = False
-
-        while validEmployer != True:
-            count = 0
-            for experience in self.current_user.profile.experience:
-                print(count, ".", experience.employer)
-                count = count + 1
-
-
-            employerToDelete =  self.handle_input(SELECT_OPTION_MESSAGE, int)
-
-
-            try:
-                self.current_user.profile.expereience.pop(int(employerToDelete))
-                validEmployer = True
-                print("Remove Successful!")
-                User.update_users_file()
-            except IndexError:
-                print("Invalid input, try again")
-
-        return self.go_back()
+        
+        experience_index = int(experience_index)
+        error_message = self.current_user.profile.delete_experience(experience_index)
+        if error_message:
+            print(error_message)
+        else:
+            print(EXPERIENCE_REMOVED_MESSAGE)
+        
+        return self.reload_screen()
 
     @screen
     def experience_screen(self):
-        print("0. Add experience section")
-        print("1. Delete experience section")
+        print("Experience", end="\n\n")
+        print("0. Add experience")
+        print("1. Delete experience")
         print("b. Go Back")
         option = self.handle_input(SELECT_OPTION_MESSAGE)
 
@@ -256,8 +264,9 @@ class App:
 
     @screen
     def education_screen(self):
-        print("0. Add education section")
-        print("1. Delete education section")
+        print("Education", end="\n\n")
+        print("0. Add education")
+        print("1. Delete education")
         print("b. Go Back")
         option = self.handle_input(SELECT_OPTION_MESSAGE)
 
@@ -274,8 +283,10 @@ class App:
 
     @screen
     def add_education_screen(self):
-        profile = self.current_user.profile
-        print("Add Education")
+        print("Add Education", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+
         schoolName = input(TYPE_SCHOOL_NAME_MESSAGE)
         degree = input(TYPE_DEGREE_MESSAGE)
         yearsAttended = input(TYPE_YEARS_ATTENDED_MESSAGE)
@@ -286,57 +297,100 @@ class App:
             yearsAttended,
         )
 
-        error_message = profile.save_education(education)
-        if error_message == None:
-            print("Education Added Succesfully!")
-
-        else:
+        error_message = self.current_user.profile.add_education(education)
+        if error_message:
             print(error_message)
+        else:
+            print(EDUCATION_ADDED_MESSAGE)
 
         return self.go_back()
 
     @screen
     def delete_education_screen(self):
+        print("Delete Education", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+
         print("Which education section would you like to delete?")
-        validEducation = False
+        for index, education in enumerate(self.current_user.profile.education):
+            print(f"{index}. {education.degree} at {education.school_name} ", end="")
+            print(education.years_attended)
+        print("b. Go back")
 
-        while validEducation != True:
-            count = 0
-            for education in self.current_user.profile.education:
-                print(
-                    count,
-                    ".",
-                    "School Name: "
-                    + education.schoolName
-                    + "\n"
-                    + "   "
-                    + " Degree: "
-                    + education.degree
-                    + "\n"
-                    + "    "
-                    + "Years Attended: "
-                    + education.yearsAttended,
-                )
-                print()
-                count = count + 1
+        education_index = self.handle_input(SELECT_OPTION_MESSAGE, int)
+        if education_index == GO_BACK_KEY:
+            return self.go_back()
+        
+        education_index = int(education_index)
+        error_message = self.current_user.profile.delete_education(education_index)
+        if error_message:
+            print(error_message)
+        else:
+            print(EDUCATION_REMOVED_MESSAGE)
 
-            print("b. Go back")
-            educationToDelete = input(SELECT_OPTION_MESSAGE)
-            try:
-                if educationToDelete == GO_BACK_KEY:
-                    return self.go_back()
+        return self.reload_screen()
 
-                self.current_user.profile.education.pop(int(educationToDelete))
-                validEducation = True
-                print("Remove Successful!")
-                User.update_users_file()
-            except IndexError:
-                print("Invalid input, try again")
+    @screen
+    def edit_profile_title_screen(self):
+        print("Edit profile title", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+        
+        if self.current_user.profile.title:
+            print(f"Current title: {self.current_user.profile.title}")
+            print(UPDATE_WARRNING)
 
+        self.current_user.profile.title = input(TYPE_TITLE_MESSAGE)
+        User.update_users_file()
+        return self.go_back()
+    
+    @screen
+    def edit_profile_major_screen(self):
+        print("Edit profile major", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+
+        if self.current_user.profile.major:
+            print(f"Current major: {self.current_user.profile.major}")
+            print(UPDATE_WARRNING)
+
+        major = input(TYPE_MAJOR_MESSAGE)
+        self.current_user.profile.major = str.title(major)
+        User.update_users_file()
+        return self.go_back()
+
+    @screen
+    def edit_profile_university_screen(self):
+        print("Edit profile university", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+        
+        if self.current_user.profile.university:
+            print(f"Current university: {self.current_user.profile.university}")
+            print(UPDATE_WARRNING)
+
+        university = input(TYPE_NAME_OF_UNIVERSITY)
+        self.current_user.profile.university = str.title(university)
+        User.update_users_file()
+        return self.go_back()
+    
+    @screen
+    def edit_profile_summary_screen(self):
+        print("Edit profile summary", end="\n\n")
+        if not self.current_user.profile:
+            self.current_user.profile = Profile()
+        
+        if self.current_user.profile.about:
+            print(f"Current summary: {self.current_user.profile.about}")
+            print(UPDATE_WARRNING)
+
+        self.current_user.profile.about = input(TYPE_SUMMARY_MESSAGE)
+        User.update_users_file()
         return self.go_back()
 
     @screen
     def edit_profile_screen(self):
+        print("Edit Profile", end="\n\n")
         print("0. Title")
         print("1. Major")
         print("2. University Name")
@@ -346,58 +400,18 @@ class App:
         print("b. Go Back")
         option = self.handle_input(EDIT_PROFILE_MESSAGE)
 
-        if self.current_user.profile == None:
-            profile = Profile()
-            self.current_user.profile = profile
-            User.update_users_file()
-
-        else:
-            profile = self.current_user.profile
-
         if option == GO_BACK_KEY:
             return self.go_back()
-
         elif option == "0":
-            if len(profile.title) > 0:
-                print("\nCurrent title: ", profile.title)
-                print(UPDATE_WARRNING)
-
-            profile.title = input(TYPE_TITLE_MESSAGE)
-            User.update_users_file()
-            return self.reload_screen()
-
+            return self.edit_profile_title_screen()
         elif option == "1":
-            if len(profile.major) > 0:
-                print("\nCurrent major: ", profile.major)
-                print(UPDATE_WARRNING)
-
-            major = input(TYPE_MAJOR_MESSAGE)
-            profile.major = str.title(major)
-            User.update_users_file()
-            return self.reload_screen()
-
+            return self.edit_profile_major_screen()
         elif option == "2":
-            if len(profile.university) > 0:
-                print("\nCurrent university: ", profile.university)
-                print(UPDATE_WARRNING)
-
-            name = input(TYPE_NAME_OF_UNIVERSITY)
-            profile.university = str.title(name)
-            User.update_users_file()
-            return self.reload_screen()
-
+            return self.edit_profile_university_screen()
         elif option == "3":
-            if len(profile.about) > 0:
-                print("\nCurrent summary: ", profile.about)
-                print(UPDATE_WARRNING)
-
-            profile.about = input(TYPE_SUMMARY_MESSAGE)
-            User.update_users_file()
-            return self.reload_screen()
-
+            return self.edit_profile_summary_screen()
         elif option == "4":
             return self.experience_screen()
-
         elif option == "5":
             return self.education_screen()
 
@@ -405,41 +419,39 @@ class App:
 
     @screen
     def view_profile_screen(self):
+        print("Profile", end="\n\n")
         profile = self.current_user.profile
-        if profile == None:
-            print("You do not have a profile to view yet. Please return to dashboard and select 'Edit Profile'")
-            input("Press any key to go back: ")
-            return self.go_back()
+        
+        if profile:
+            print("\t\t\t\t\t\t\t\t\t\t\t", self.current_user.first_name, self.current_user.last_name)
+            print("Title: ", profile.title)
+            print("Major: ", profile.major)
+            print("University: ", profile.university)
+            print("Summary: ", profile.about)
+            print("\nEXPERIENCE:\n")
+            for experience in profile.experience:
+                print("\tJob Title: ", experience.title)
+                print("\tEmployer: ", experience.employer)
+                print("\tDate Started: ", experience.date_started)
+                print("\tDate Ended: ", experience.date_ended)
+                print("\tLocation: ", experience.location)
+                print("\tDescription:", experience.description)
+                print("==========================")
 
-        print("\t\t\t\t\t\t\t\t\t\t\t", self.current_user.first_name, self.current_user.last_name)
-        print("Title: ", profile.title)
-        print("Major: ", profile.major)
-        print("University: ", profile.university)
-        print("Summary: ", profile.about)
-        print("\nEXPERIENCE:\n")
-        for experience in profile.experience:
-            print("\tJob Title: ", experience.title)
-            print("\tEmployer: ", experience.employer)
-            print("\tDate Started: ", experience.dateStarted)
-            print("\tDate Ended: ", experience.dateEnded)
-            print("\tLocation: ", experience.location)
-            print("\tDescription:", experience.description)
-            print("==========================")
-
-        print("\nEDUCATION:\n")
-        for education in profile.education:
-            print("\tUniversity: ", education.schoolName)
-            print("\tDegree: ", education.degree)
-            print("\tYears Attended:", education.yearsAttended)
-            print("==========================")
+            print("\nEDUCATION:\n")
+            for education in profile.education:
+                print("\tUniversity: ", education.school_name)
+                print("\tDegree: ", education.degree)
+                print("\tYears Attended:", education.years_attended)
+                print("==========================")
+        else:
+            print(NO_PROFILE_YET_MESSAGE)
 
         option = self.handle_input(GO_BACK_MESSAGE)
         if option == "b":
             return self.go_back()
 
         return self.reload_screen()
-
-
 
     @screen
     def register_user_screen(self):

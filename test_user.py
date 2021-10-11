@@ -56,6 +56,7 @@ def test_load_users_file(monkeypatch):
     assert user1.sms_notifications == User.users[user1.username].sms_notifications
     assert user1.targeted_ads == User.users[user1.username].targeted_ads
     assert user1.app_language == User.users[user1.username].app_language
+    assert user1.profile == None
 
     assert user2.username in User.users
     assert user2.username == User.users[user2.username].username
@@ -66,6 +67,7 @@ def test_load_users_file(monkeypatch):
     assert user2.sms_notifications == User.users[user2.username].sms_notifications
     assert user2.targeted_ads == User.users[user2.username].targeted_ads
     assert user2.app_language == User.users[user2.username].app_language
+    assert user2.profile == None
 
 def test_update_users_file(monkeypatch):
     # Creates in-memory bytes file

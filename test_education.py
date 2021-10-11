@@ -1,16 +1,11 @@
 from education import Education
 
-
-def test_education_section(monkeypatch, capfd):
+def test__init__():
     schoolName = "Test School Name"
     degree = "Test Degree"
-    '''
-    yearStart = 2000
-    yearEnd = 2004
-    '''
-    yearsAttended = "2000-2004"
-    education = Education(schoolName, degree, yearsAttended)
+    years_attended = "2000-2004"
+    education = Education(schoolName, degree, years_attended)
 
-    assert education.schoolName == schoolName
+    assert education.school_name == schoolName
     assert education.degree == degree
-    assert education.yearsAttended == yearsAttended
+    assert education.years_attended == years_attended

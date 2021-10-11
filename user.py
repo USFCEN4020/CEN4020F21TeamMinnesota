@@ -66,8 +66,6 @@ class User:
 
         return user
 
-
-
     # Saves username as key and User object as value in a dictionary to pickle file.
     def save(self):
         """

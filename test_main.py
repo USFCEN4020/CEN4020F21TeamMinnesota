@@ -3,14 +3,15 @@ import io
 
 from collections import deque
 from job import MAX_ALLOWED_JOBS_ERROR_MESSAGE, Job
-from main import CONTACT_FOUND_MESSAGE, CONTACT_NOT_FOUND_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, \
-    LOGIN_ERROR_MESSAGE, LOGIN_SUCCESSFUL_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
+from main import CONTACT_FOUND_MESSAGE, CONTACT_NOT_FOUND_MESSAGE, EDIT_PROFILE_MESSAGE, EDUCATION_ADDED_MESSAGE, EDUCATION_REMOVED_MESSAGE, EXPERIENCE_ADDED_MESSAGE, EXPERIENCE_REMOVED_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, \
+    LOGIN_ERROR_MESSAGE, LOGIN_SUCCESSFUL_MESSAGE, NO_PROFILE_YET_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE, TYPE_DATE_ENDED_MESSAGE, TYPE_DATE_STARTED_MESSAGE, TYPE_DEGREE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
     TYPE_JOB_DESCRIPTION_MESSAGE, TYPE_JOB_EMPLOYER_MESSAGE, TYPE_JOB_LOCATION_MESSAGE, \
-    TYPE_JOB_SALARY_MESSAGE, TYPE_JOB_TITLE_MESSAGE, TYPE_LAST_NAME_MESSAGE, VIDEO_PLAYNG_MESSAGE,\
+    TYPE_JOB_SALARY_MESSAGE, TYPE_JOB_TITLE_MESSAGE, TYPE_LAST_NAME_MESSAGE, TYPE_MAJOR_MESSAGE, TYPE_NAME_OF_UNIVERSITY, TYPE_SCHOOL_NAME_MESSAGE, TYPE_SUMMARY_MESSAGE, TYPE_TITLE_MESSAGE, TYPE_YEARS_ATTENDED_MESSAGE, UPDATE_WARRNING, VIDEO_PLAYNG_MESSAGE,\
     GO_BACK_KEY, GO_BACK_MESSAGE, INVALID_INPUT_ERROR_MESSAGE, SELECT_NEW_SKILL_MESSAGE, \
     SELECT_OPTION_MESSAGE, SKILLS, TYPE_PASSWORD_MESSAGE, TYPE_USERNAME_MESSAGE, \
     UNDER_CONSTRUCTION_MESSAGE, USER_CREATED_MESSAGE, screen, App
 from user import PASSWORD_LENGTH_ERROR_MESSAGE, User
+from profile import Profile, EXPERIENCE_INDEX_OUT_OF_RANGE, EDUCATION_INDEX_OUT_OF_RANGE
 
 def test_screen():
     return_true = lambda app: app
@@ -275,6 +276,530 @@ def test_handle_go_back(monkeypatch):
     result = app.handle_go_back("h")
     assert result == "reload"
 
+def test_add_experience_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_counter        
+        input_counter += 1
+        
+        prompt = args[0]
+        if prompt == TYPE_JOB_TITLE_MESSAGE:
+            return "SWE"
+        
+        if prompt == TYPE_JOB_EMPLOYER_MESSAGE:
+            return "USF"
+        
+        if prompt == TYPE_DATE_STARTED_MESSAGE:
+            return "2020"
+        
+        if prompt == TYPE_DATE_ENDED_MESSAGE:
+            return "2021"
+        
+        if prompt == TYPE_JOB_LOCATION_MESSAGE:
+            return "Tampa"
+        
+        if prompt == TYPE_JOB_DESCRIPTION_MESSAGE:
+            return "LOL"
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Successful test
+
+    # Replaces Profile add_experience by a lambda function that returns None
+    monkeypatch.setattr(Profile, "add_experience", lambda *args: None)
+
+    input_counter = 0
+    result = app.add_experience_screen()
+    assert input_counter == 6
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert EXPERIENCE_ADDED_MESSAGE in out
+
+    # Unsuccessful test
+
+    # Replaces Profile add_experience by a lambda function that returns MAX_ALLOWED_JOBS_ERROR_MESSAGE
+    monkeypatch.setattr(Profile, "add_experience", lambda *args: MAX_ALLOWED_JOBS_ERROR_MESSAGE)
+
+    input_counter = 0
+    result = app.add_experience_screen()
+    assert input_counter == 6
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert MAX_ALLOWED_JOBS_ERROR_MESSAGE in out
+
+def test_delete_experience_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+        prompt = args[1]
+        assert SELECT_OPTION_MESSAGE == prompt
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.delete_experience_screen()
+    assert result == "go_back"
+
+    # Test valid option
+    
+    # Replaces Profile delete_experience by a lambda function that returns None
+    monkeypatch.setattr(Profile, "delete_experience", lambda *args: None)
+
+    input_value = "1"
+    result = app.delete_experience_screen()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert EXPERIENCE_REMOVED_MESSAGE in out
+
+    # Test invalid
+
+    # Replaces Profile delete_experience by a lambda function that returns EXPERIENCE_INDEX_OUT_OF_RANGE
+    monkeypatch.setattr(Profile, "delete_experience", lambda *args: EXPERIENCE_INDEX_OUT_OF_RANGE)
+
+    input_value = "-1"
+    result = app.delete_experience_screen()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert EXPERIENCE_INDEX_OUT_OF_RANGE in out
+
+def test_experience_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        nonlocal input_value
+        
+        prompt = args[1]
+        assert prompt == SELECT_OPTION_MESSAGE
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App add_experience_screen by a lambda function that returns "add"
+    monkeypatch.setattr(App, "add_experience_screen", lambda *arg: "add")
+    # Replaces App delete_experience_screen by a lambda function that returns "delete"
+    monkeypatch.setattr(App, "delete_experience_screen", lambda *arg: "delete")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.experience_screen()
+    assert result == "go_back"
+
+    # Test add experience
+    input_value = "0"
+    result = app.experience_screen()
+    assert result == "add"
+
+    # Test remove experience
+    input_value = "1"
+    result = app.experience_screen()
+    assert result == "delete"
+
+    # Test reload
+    input_value = "-1"
+    result = app.experience_screen()
+    assert result == "reload"
+
+def test_education_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        nonlocal input_value
+        
+        prompt = args[1]
+        assert prompt == SELECT_OPTION_MESSAGE
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App add_education_screen by a lambda function that returns "add"
+    monkeypatch.setattr(App, "add_education_screen", lambda *arg: "add")
+    # Replaces App delete_education_screen by a lambda function that returns "delete"
+    monkeypatch.setattr(App, "delete_education_screen", lambda *arg: "delete")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.education_screen()
+    assert result == "go_back"
+
+    # Test add experience
+    input_value = "0"
+    result = app.education_screen()
+    assert result == "add"
+
+    # Test remove experience
+    input_value = "1"
+    result = app.education_screen()
+    assert result == "delete"
+
+    # Test reload
+    input_value = "-1"
+    result = app.education_screen()
+    assert result == "reload"
+
+def test_add_education_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_counter        
+        input_counter += 1
+        
+        prompt = args[0]
+        if prompt == TYPE_SCHOOL_NAME_MESSAGE:
+            return "USF"
+        
+        if prompt == TYPE_DEGREE_MESSAGE:
+            return "BSc"
+        
+        if prompt == TYPE_YEARS_ATTENDED_MESSAGE:
+            return "2020-2021"
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Successful test
+
+    # Replaces Profile add_education by a lambda function that returns None
+    monkeypatch.setattr(Profile, "add_education", lambda *args: None)
+
+    input_counter = 0
+    result = app.add_education_screen()
+    assert input_counter == 3
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert EDUCATION_ADDED_MESSAGE in out
+
+    # Unsuccessful test
+
+    # Replaces Profile add_education by a lambda function that returns Error
+    monkeypatch.setattr(Profile, "add_education", lambda *args: "Error")
+
+    input_counter = 0
+    result = app.add_education_screen()
+    assert input_counter == 3
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert "Error" in out
+
+def test_delete_education_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+        prompt = args[1]
+        assert SELECT_OPTION_MESSAGE == prompt
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.delete_education_screen()
+    assert result == "go_back"
+
+    # Test valid option
+    
+    # Replaces Profile delete_education by a lambda function that returns None
+    monkeypatch.setattr(Profile, "delete_education", lambda *args: None)
+
+    input_value = "1"
+    result = app.delete_education_screen()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert EDUCATION_REMOVED_MESSAGE in out
+
+    # Test invalid
+
+    # Replaces Profile delete_education by a lambda function that returns EDUCATION_INDEX_OUT_OF_RANGE
+    monkeypatch.setattr(Profile, "delete_education", lambda *args: EDUCATION_INDEX_OUT_OF_RANGE)
+
+    input_value = "-1"
+    result = app.delete_education_screen()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert EDUCATION_INDEX_OUT_OF_RANGE in out
+
+def test_edit_profile_title_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[0]
+        if prompt == TYPE_TITLE_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test without update warning
+    input_value = "hello"
+    app.edit_profile_title_screen()
+    assert app.current_user.profile.title == input_value
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING not in out
+
+    # Test with update warning
+    input_value = "world"
+    app.edit_profile_title_screen()
+    assert app.current_user.profile.title == input_value
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING in out
+
+def test_edit_profile_major_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[0]
+        if prompt == TYPE_MAJOR_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test without update warning
+    input_value = "hello"
+    app.edit_profile_major_screen()
+    assert app.current_user.profile.major == str.title(input_value)
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING not in out
+
+    # Test with update warning
+    input_value = "world"
+    app.edit_profile_major_screen()
+    assert app.current_user.profile.major == str.title(input_value)
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING in out
+
+def test_edit_profile_university_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[0]
+        if prompt == TYPE_NAME_OF_UNIVERSITY:
+            return input_value
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test without update warning
+    input_value = "hello"
+    app.edit_profile_university_screen()
+    assert app.current_user.profile.university == str.title(input_value)
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING not in out
+
+    # Test with update warning
+    input_value = "world"
+    app.edit_profile_university_screen()
+    assert app.current_user.profile.university == str.title(input_value)
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING in out
+
+def test_edit_profile_summary_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[0]
+        if prompt == TYPE_SUMMARY_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces python builtin input function with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test without update warning
+    input_value = "hello"
+    app.edit_profile_summary_screen()
+    assert app.current_user.profile.about == input_value
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING not in out
+
+    # Test with update warning
+    input_value = "world"
+    app.edit_profile_summary_screen()
+    assert app.current_user.profile.about == input_value
+    out, _ = capfd.readouterr()
+    assert UPDATE_WARRNING in out
+
+def test_edit_profile_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        nonlocal input_value
+        
+        prompt = args[1]
+        assert prompt == EDIT_PROFILE_MESSAGE
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App edit_profile_title_screen function by a lambda function that returns profile_title
+    monkeypatch.setattr(App, "edit_profile_title_screen", lambda *args: "profile_title")
+    # Replaces App edit_profile_major_screen function by a lambda function that returns profile_major
+    monkeypatch.setattr(App, "edit_profile_major_screen", lambda *args: "profile_major")
+    # Replaces App edit_profile_university_screen function by a lambda function that returns profile_university
+    monkeypatch.setattr(App, "edit_profile_university_screen", lambda *args: "profile_university")
+    # Replaces App edit_profile_summary_screen function by a lambda function that returns profile_summary
+    monkeypatch.setattr(App, "edit_profile_summary_screen", lambda *args: "profile_summary")
+    # Replaces App experience_screen function by a lambda function that returns experience
+    monkeypatch.setattr(App, "experience_screen", lambda *args: "experience")
+    # Replaces App education_screen function by a lambda function that returns education
+    monkeypatch.setattr(App, "education_screen", lambda *args: "education")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.edit_profile_screen()
+    assert result == "go_back"
+
+    # Test profile title
+    input_value = "0"
+    result = app.edit_profile_screen()
+    assert result == "profile_title"
+
+    # Test profile major  
+    input_value = "1"
+    result = app.edit_profile_screen()
+    assert result == "profile_major"
+
+    # Test profile university
+    input_value = "2"
+    result = app.edit_profile_screen()
+    assert result == "profile_university"
+
+    # Test profile summary
+    input_value = "3"    
+    result = app.edit_profile_screen()
+    assert result == "profile_summary"
+
+    # Test experience
+    input_value = "4"    
+    result = app.edit_profile_screen()
+    assert result == "experience"
+
+    # Test education
+    input_value = "5"    
+    result = app.edit_profile_screen()
+    assert result == "education"
+
+    # Test reload
+    input_value = "-1"
+    result = app.edit_profile_screen()
+    assert result == "reload"
+
+def test_view_profile_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    app.current_user = user
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        assert prompt == GO_BACK_MESSAGE
+        return input_value
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test profile available
+    input_value = GO_BACK_KEY
+    user.profile = Profile()
+    result = app.view_profile_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert NO_PROFILE_YET_MESSAGE not in out
+
+    # Test no profile go back
+    input_value = GO_BACK_KEY
+    user.profile = None
+    result = app.view_profile_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert NO_PROFILE_YET_MESSAGE in out
+
+    # Test no profile reload
+    input_value = "h"
+    result = app.view_profile_screen()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert NO_PROFILE_YET_MESSAGE in out
+
 def test_register_user_screen(monkeypatch, capfd):
     app = App()
 
@@ -305,7 +830,6 @@ def test_register_user_screen(monkeypatch, capfd):
     input_counter = 0
     app.register_user_screen()
     assert input_counter == 4
-    # Reads standard output
     out, _ = capfd.readouterr()
     assert USER_CREATED_MESSAGE in out
 
@@ -1408,49 +1932,3 @@ def test_user_dashboard(monkeypatch):
     input_value = "-1"
     result = app.user_dashboard()
     assert result == "reload"
-
-
-def test_education_screen(monkeypatch, capfd):
-    app = App()
-
-    def mock_input(*args):
-        nonlocal input_value
-
-        # Reads standard output
-        out, _ = capfd.readouterr()
-        assert all([
-            '0. Add education section' in out,
-            '1. Delete education section' in out,
-            'b. Go Back' in out
-        ])
-        prompt = args[1]
-        assert prompt == SELECT_OPTION_MESSAGE
-        return input_value
-
-    # Replaces App handle_input method by mock_input
-    monkeypatch.setattr(App, "handle_input", mock_input)
-    # Replaces App go_back method by a lambda function that returns go_back
-    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
-    # Replaces App reload_screen method by a lambda function that returns reload
-    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
-    monkeypatch.setattr(App, "add_education_screen", lambda *args: "add_education_screen")
-    monkeypatch.setattr(App, "delete_education_screen", lambda *args: "delete_education_screen")
-
-    # Test go back
-    input_value = GO_BACK_KEY
-    result = app.education_screen()
-    assert result == "go_back"
-
-    # Test reload
-    input_value = "h"
-    result = app.education_screen()
-    assert result == "reload"
-
-    input_value = "0"
-    result = app.education_screen()
-    assert result == "add_education_screen"
-
-    # Test reload
-    input_value = "1"
-    result = app.education_screen()
-    assert result == "delete_education_screen"

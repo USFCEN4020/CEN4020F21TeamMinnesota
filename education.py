@@ -1,5 +1,5 @@
 class Education:
-    def __init__(self, schoolName, degree, yearsAttended):
-        self.schoolName = schoolName
+    def __init__(self, school_name, degree, years_attended):
+        self.school_name = school_name
         self.degree = degree
-        self.yearsAttended = yearsAttended
+        self.years_attended = years_attended
