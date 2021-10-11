@@ -1408,3 +1408,49 @@ def test_user_dashboard(monkeypatch):
     input_value = "-1"
     result = app.user_dashboard()
     assert result == "reload"
+
+
+def test_education_screen(monkeypatch, capfd):
+    app = App()
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        # Reads standard output
+        out, _ = capfd.readouterr()
+        assert all([
+            '0. Add education section' in out,
+            '1. Delete education section' in out,
+            'b. Go Back' in out
+        ])
+        prompt = args[1]
+        assert prompt == SELECT_OPTION_MESSAGE
+        return input_value
+
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+    monkeypatch.setattr(App, "add_education_screen", lambda *args: "add_education_screen")
+    monkeypatch.setattr(App, "delete_education_screen", lambda *args: "delete_education_screen")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.education_screen()
+    assert result == "go_back"
+
+    # Test reload
+    input_value = "h"
+    result = app.education_screen()
+    assert result == "reload"
+
+    input_value = "0"
+    result = app.education_screen()
+    assert result == "add_education_screen"
+
+    # Test reload
+    input_value = "1"
+    result = app.education_screen()
+    assert result == "delete_education_screen"

@@ -2,7 +2,7 @@ import io
 import pickle
 
 from os import path
-from profile import MAX_ALLOWED_EXPERIENCES_ERROR_MESSAGE, MAX_EXPRIENCE, Profile
+from profile import MAX_ALLOWED_EXPERIENCES_ERROR_MESSAGE, MAX_EXPERIENCE, Profile
 import profile
 from user import User
 
@@ -12,7 +12,7 @@ def test__init__():
     assert profile.major == ""
     assert profile.university == ""
     assert profile.about == ""
-    assert profile.exprience == []
+    assert profile.experience == []
     assert profile.education == None
 
 def test_save(monkeypatch):    
