@@ -11,7 +11,7 @@ PASSWORD_DIGIT_ERROR_MESSAGE = "The password must have at least one digit."
 PASSWORD_NON_ALPHA_ERROR_MESSAGE = "The password must have at least one non-alpha character."
 MAX_ALLOWED_ACCOUNTS_ERROR_MESSAGE = "All permitted accounts have been created, please come backlater"
 
-MAX_USERS = 5
+MAX_USERS = 10
 
 class User:
     USERS_FILE_NAME = "users.pickle"

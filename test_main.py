@@ -575,6 +575,8 @@ def test_edit_profile_title_screen(monkeypatch, capfd):
     monkeypatch.setattr(builtins, "input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User update_users_file function with a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda *args: None)
 
     # Test without update warning
     input_value = "hello"
@@ -608,6 +610,8 @@ def test_edit_profile_major_screen(monkeypatch, capfd):
     monkeypatch.setattr(builtins, "input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User update_users_file function with a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda *args: None)
 
     # Test without update warning
     input_value = "hello"
@@ -641,6 +645,8 @@ def test_edit_profile_university_screen(monkeypatch, capfd):
     monkeypatch.setattr(builtins, "input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User update_users_file function with a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda *args: None)
 
     # Test without update warning
     input_value = "hello"
@@ -674,6 +680,8 @@ def test_edit_profile_summary_screen(monkeypatch, capfd):
     monkeypatch.setattr(builtins, "input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User update_users_file function with a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda *args: None)
 
     # Test without update warning
     input_value = "hello"
