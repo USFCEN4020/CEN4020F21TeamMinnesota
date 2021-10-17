@@ -3,14 +3,14 @@ import io
 
 from collections import deque
 from job import MAX_ALLOWED_JOBS_ERROR_MESSAGE, Job
-from main import CONTACT_FOUND_MESSAGE, CONTACT_NOT_FOUND_MESSAGE, EDIT_PROFILE_MESSAGE, EDUCATION_ADDED_MESSAGE, EDUCATION_REMOVED_MESSAGE, EXPERIENCE_ADDED_MESSAGE, EXPERIENCE_REMOVED_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, \
-    LOGIN_ERROR_MESSAGE, LOGIN_SUCCESSFUL_MESSAGE, NO_PROFILE_YET_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE, TYPE_DATE_ENDED_MESSAGE, TYPE_DATE_STARTED_MESSAGE, TYPE_DEGREE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
+from main import CONNECTION_ACEPTED_MESSAGE, CONNECTION_REJECTED_MESSAGE, CONNECTION_REQUESTED_MESSAGE, CONTACT_FOUND_MESSAGE, CONTACT_NOT_FOUND_MESSAGE, DISCONNECTED_MESSAGE, EDIT_PROFILE_MESSAGE, EDUCATION_ADDED_MESSAGE, EDUCATION_REMOVED_MESSAGE, EXPERIENCE_ADDED_MESSAGE, EXPERIENCE_REMOVED_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, \
+    LOGIN_ERROR_MESSAGE, LOGIN_SUCCESSFUL_MESSAGE, NO_PROFILE_YET_MESSAGE, PENDING_FRIEND_REQUEST_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE, TYPE_DATE_ENDED_MESSAGE, TYPE_DATE_STARTED_MESSAGE, TYPE_DEGREE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
     TYPE_JOB_DESCRIPTION_MESSAGE, TYPE_JOB_EMPLOYER_MESSAGE, TYPE_JOB_LOCATION_MESSAGE, \
     TYPE_JOB_SALARY_MESSAGE, TYPE_JOB_TITLE_MESSAGE, TYPE_LAST_NAME_MESSAGE, TYPE_MAJOR_MESSAGE, TYPE_NAME_OF_UNIVERSITY, TYPE_SCHOOL_NAME_MESSAGE, TYPE_SUMMARY_MESSAGE, TYPE_TITLE_MESSAGE, TYPE_YEARS_ATTENDED_MESSAGE, UPDATE_WARRNING, VIDEO_PLAYNG_MESSAGE,\
     GO_BACK_KEY, GO_BACK_MESSAGE, INVALID_INPUT_ERROR_MESSAGE, SELECT_NEW_SKILL_MESSAGE, \
     SELECT_OPTION_MESSAGE, SKILLS, TYPE_PASSWORD_MESSAGE, TYPE_USERNAME_MESSAGE, \
     UNDER_CONSTRUCTION_MESSAGE, USER_CREATED_MESSAGE, screen, App
-from user import PASSWORD_LENGTH_ERROR_MESSAGE, User
+from user import CONNECT_TO_SELF_ERROR_MESSAGE, CONNECTION_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE, PASSWORD_LENGTH_ERROR_MESSAGE, User
 from profile import Profile, EXPERIENCE_INDEX_OUT_OF_RANGE, EDUCATION_INDEX_OUT_OF_RANGE
 
 def test_screen():
@@ -21,7 +21,7 @@ def test_screen():
     app = App()
     result = wrapper(app)
     assert result == app
-    assert app.history[-1] == return_true.__name__
+    assert app.history[-1] == (return_true.__name__, ())
     assert len(app.history) == 1
 
 def test__init__():
@@ -162,14 +162,14 @@ def test_go_back():
     # Test with valid history
     app.return_true = lambda: True
     app.return_true.__name__ = "return_true"
-    app.history.extend([app.return_true.__name__, None])
+    app.history.extend([(app.return_true.__name__, ()), None])
 
     result = app.go_back()
     assert result == True
     assert len(app.history) == 0
 
     # Test with single history
-    app.history.extend([app.return_true.__name__])
+    app.history.extend([(app.return_true.__name__, ())])
 
     result = app.go_back()
     assert result == None
@@ -190,12 +190,12 @@ def test_reload_screen():
     app.return_false = lambda: False
     app.return_false.__name__ = "return_false"
 
-    app.history.extend([app.return_false.__name__, app.return_true.__name__])
+    app.history.extend([(app.return_false.__name__, (1)), (app.return_true.__name__, ())])
 
     result = app.reload_screen()
     assert result == True
     assert len(app.history) == 1
-    assert app.history[-1] == app.return_false.__name__
+    assert app.history[-1] == (app.return_false.__name__, (1))
 
     # Test with empty history
     app.history.clear()
@@ -766,10 +766,9 @@ def test_edit_profile_screen(monkeypatch):
     result = app.edit_profile_screen()
     assert result == "reload"
 
-def test_view_profile_screen(monkeypatch, capfd):
+def test_show_profile_screen(monkeypatch, capfd):
     app = App()
     user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
-    app.current_user = user
 
     def mock_input(*args):
         nonlocal input_value
@@ -788,22 +787,31 @@ def test_view_profile_screen(monkeypatch, capfd):
     # Test profile available
     input_value = GO_BACK_KEY
     user.profile = Profile()
-    result = app.view_profile_screen()
+    result = app.show_profile_screen(user)
     assert result == "go_back"
     out, _ = capfd.readouterr()
     assert NO_PROFILE_YET_MESSAGE not in out
 
-    # Test no profile go back
+    # Test no profile and no logged in go back
     input_value = GO_BACK_KEY
     user.profile = None
-    result = app.view_profile_screen()
+    result = app.show_profile_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert NO_PROFILE_YET_MESSAGE not in out
+
+    # Test no profile and logged in go back
+    app.current_user = user
+    input_value = GO_BACK_KEY
+    user.profile = None
+    result = app.show_profile_screen(user)
     assert result == "go_back"
     out, _ = capfd.readouterr()
     assert NO_PROFILE_YET_MESSAGE in out
 
     # Test no profile reload
     input_value = "h"
-    result = app.view_profile_screen()
+    result = app.show_profile_screen(user)
     assert result == "reload"
     out, _ = capfd.readouterr()
     assert NO_PROFILE_YET_MESSAGE in out
@@ -1875,12 +1883,508 @@ def test_main_menu(monkeypatch, capfd):
     assert result == "important_links"
 
     # Test reload
-    input_value = "-1"    
+    input_value = "6"    
     result = app.main_menu()
     assert result == "reload"
 
-def test_user_dashboard(monkeypatch):
+def test_search_students_screen(monkeypatch):
     app = App()
+    App.success_story = "Success story!"
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        assert prompt == SELECT_OPTION_MESSAGE
+        return input_value
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App search_students_by_last_name_screen method by a lambda function that returns last_name
+    monkeypatch.setattr(App, "search_students_by_last_name_screen", lambda *args: "last_name")
+    # Replaces App search_students_by_university_screen method by a lambda function that returns university
+    monkeypatch.setattr(App, "search_students_by_university_screen", lambda *args: "university")
+    # Replaces App search_students_by_major_screen method by a lambda function that returns major
+    monkeypatch.setattr(App, "search_students_by_major_screen", lambda *args: "major")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.search_students_screen()
+    assert result == "go_back"
+
+    # Test search students by last name
+    input_value = "0"      
+    result = app.search_students_screen()
+    assert result == "last_name"
+
+    # Test search students by university
+    input_value = "1"
+    result = app.search_students_screen()
+    assert result == "university"
+
+    # Test search students by major
+    input_value = "2"
+    result = app.search_students_screen()
+    assert result == "major"
+
+    # Test reload
+    input_value = "-1"    
+    result = app.search_students_screen()
+    assert result == "reload"
+
+def test_search_students_by_last_name_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        prompt = args[0]
+        if prompt == TYPE_LAST_NAME_MESSAGE:
+            return ""
+        
+        assert False
+    
+    # Replaces input buildt-in input with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces User find_users_by_last_name by a lambda function that returns []
+    monkeypatch.setattr(User, "find_users_by_last_name", lambda *args: [])
+    # Replaces User search_students_result_screen by a lambda function that returns results
+    monkeypatch.setattr(App, "search_students_result_screen", lambda *args: "results")
+
+    result = app.search_students_by_last_name_screen()
+    assert result == "results"
+    assert len(app.history) == 0
+
+def test_search_students_by_university_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        prompt = args[0]
+        if prompt == TYPE_NAME_OF_UNIVERSITY:
+            return ""
+        
+        assert False
+    
+    # Replaces input buildt-in input with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces User find_users_by_university by a lambda function that returns []
+    monkeypatch.setattr(User, "find_users_by_university", lambda *args: [])
+    # Replaces User search_students_result_screen by a lambda function that returns results
+    monkeypatch.setattr(App, "search_students_result_screen", lambda *args: "results")
+
+    result = app.search_students_by_university_screen()
+    assert result == "results"
+    assert len(app.history) == 0
+
+def test_search_students_by_major_screen(monkeypatch):
+    app = App()
+
+    def mock_input(*args):
+        prompt = args[0]
+        if prompt == TYPE_MAJOR_MESSAGE:
+            return ""
+        
+        assert False
+    
+    # Replaces input buildt-in input with mock_input function
+    monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces User find_users_by_major by a lambda function that returns []
+    monkeypatch.setattr(User, "find_users_by_major", lambda *args: [])
+    # Replaces User search_students_result_screen by a lambda function that returns results
+    monkeypatch.setattr(App, "search_students_result_screen", lambda *args: "results")
+
+    result = app.search_students_by_major_screen()
+    assert result == "results"
+    assert len(app.history) == 0
+
+def test_search_students_result_screen(monkeypatch, capfd):
+    app = App()
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        if prompt == SELECT_OPTION_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App show_student_options method by a lambda function that returns show_student
+    monkeypatch.setattr(App, "show_student_options", lambda *args: "show_student")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    user1 = User("Testing", "", "Peter", "Doe", "English")
+    user2 = User("Software", "", "John", "Doe", "English")
+    users_list = [user1, user2]
+
+    # Test go back no results
+    input_value = GO_BACK_KEY
+    result = app.search_students_result_screen([])
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name not in out
+    assert user2.first_name not in out
+
+    # Test go back with results
+    input_value = GO_BACK_KEY
+    result = app.search_students_result_screen(users_list)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name in out
+    assert user2.first_name in out
+    
+    # Test show user successfull
+    for i in range(len(users_list)):
+        input_value = str(i)
+        result = app.search_students_result_screen(users_list)
+        assert result == "show_student"
+    
+    # Test reload
+    input_value = "-1"
+    result = app.search_students_result_screen(users_list)
+    assert result == "reload"
+
+def test_show_student_options(monkeypatch):
+    app = App()
+    user1 = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user1
+
+    user2 = User("Software", "", "John", "Doe", "English")
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        if prompt == SELECT_OPTION_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App accept_connection_screen method by a lambda function that returns accept
+    monkeypatch.setattr(App, "accept_connection_screen", lambda *args: "accept")
+    # Replaces App reject_connection_screen method by a lambda function that returns reject
+    monkeypatch.setattr(App, "reject_connection_screen", lambda *args: "reject")
+    # Replaces App view_profile_screen method by a lambda function that returns view
+    monkeypatch.setattr(App, "show_profile_screen", lambda *args: "view")
+    # Replaces App disconnect_screen method by a lambda function that returns disconnect
+    monkeypatch.setattr(App, "disconnect_screen", lambda *args: "disconnect")
+    # Replaces App request_connection_screen method by a lambda function that returns request
+    monkeypatch.setattr(App, "request_connection_screen", lambda *args: "request")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.show_student_options(user2)
+    assert result == "go_back"
+
+    # Test received connection request
+    user1.received_friend_requests = [user2.username]
+
+    input_value = "0"
+    result = app.show_student_options(user2)
+    assert result == "accept"
+
+    input_value = "1"
+    result = app.show_student_options(user2)
+    assert result == "reject"
+
+    input_value = "2"
+    result = app.show_student_options(user2)
+    assert result == "reload"
+
+    # Test is friend without profile
+    user1.received_friend_requests = []
+    user1.friends = [user2.username]
+
+    input_value = "0"
+    result = app.show_student_options(user2)
+    assert result == "disconnect"
+
+    input_value = "1"
+    result = app.show_student_options(user2)
+    assert result == "reload"
+
+    # Test is friend with profile
+    user2.profile = Profile()
+
+    input_value = "0"
+    result = app.show_student_options(user2)
+    assert result == "view"
+
+    input_value = "1"
+    result = app.show_student_options(user2)
+    assert result == "disconnect"
+
+    input_value = "2"
+    result = app.show_student_options(user2)
+    assert result == "reload"
+
+    # Test is self with profile
+    user1.profile = Profile()
+
+    input_value = "0"
+    result = app.show_student_options(user1)
+    assert result == "view"
+
+    input_value = "1"
+    result = app.show_student_options(user1)
+    assert result == "reload"
+
+    # Test request connection
+    user1.friends = []
+
+    input_value = "0"
+    result = app.show_student_options(user2)
+    assert result == "request"
+
+    input_value = "1"
+    result = app.show_student_options(user2)
+    assert result == "reload"
+
+def test_request_connection_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user
+
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test successful
+
+    # Replaces User request_connection method by a lambda function that returns None
+    monkeypatch.setattr(User, "request_connection", lambda *args: None)
+    
+    result = app.request_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_REQUESTED_MESSAGE in out
+
+    # Test unsuccessfull
+
+    # Replaces User request_connection method by a lambda function that returns CONNECT_TO_SELF_ERROR_MESSAGE
+    monkeypatch.setattr(User, "request_connection", lambda *args: CONNECT_TO_SELF_ERROR_MESSAGE)
+    
+    result = app.request_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECT_TO_SELF_ERROR_MESSAGE in out
+
+def test_accept_connection_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user
+
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test successful
+
+    # Replaces User accept_connection method by a lambda function that returns None
+    monkeypatch.setattr(User, "accept_connection", lambda *args: None)
+    
+    result = app.accept_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_ACEPTED_MESSAGE in out
+
+    # Test unsuccessfull
+
+    # Replaces User accept_connection method by a lambda function that returns CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE
+    monkeypatch.setattr(User, "accept_connection", lambda *args: CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE)
+    
+    result = app.accept_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE in out
+
+def test_reject_connection_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user
+
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test successful
+
+    # Replaces User reject_connection method by a lambda function that returns None
+    monkeypatch.setattr(User, "reject_connection", lambda *args: None)
+    
+    result = app.reject_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_REJECTED_MESSAGE in out
+
+    # Test unsuccessfull
+
+    # Replaces User reject_connection method by a lambda function that returns CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE
+    monkeypatch.setattr(User, "reject_connection", lambda *args: CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE)
+    
+    result = app.reject_connection_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE in out
+
+def test_disconnect_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user
+
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+
+    # Test successful
+
+    # Replaces User disconnect method by a lambda function that returns None
+    monkeypatch.setattr(User, "disconnect", lambda *args: None)
+    
+    result = app.disconnect_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert DISCONNECTED_MESSAGE in out
+
+    # Test unsuccessfull
+
+    # Replaces User disconnect method by a lambda function that returns CONNECTION_NOT_FOUND_ERROR_MESSAGE
+    monkeypatch.setattr(User, "disconnect", lambda *args: CONNECTION_NOT_FOUND_ERROR_MESSAGE)
+    
+    result = app.disconnect_screen(user)
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert CONNECTION_NOT_FOUND_ERROR_MESSAGE in out
+
+def test_my_network_screen(monkeypatch, capfd):
+    app = App() 
+    user1 = User("Testing", "", "Peter", "Doe", "English")
+    user2 = User("Software", "", "John", "Doe", "English")
+
+    User.users = {
+        "Testing": user1,
+        "Software": user2,
+    }
+    app.current_user = user1
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        if prompt == SELECT_OPTION_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App show_student_options method by a lambda function that returns show_student
+    monkeypatch.setattr(App, "show_student_options", lambda *args: "show_student")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back no results
+    input_value = GO_BACK_KEY
+    result = app.my_network_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name not in out
+    assert user2.first_name not in out
+
+    # Test go back with results
+    user1.friends = [user2.username]
+
+    input_value = GO_BACK_KEY
+    result = app.my_network_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name not in out
+    assert user2.first_name in out
+    
+    # Test show user successfull
+    for i in range(1):
+        input_value = str(i)
+        result = app.my_network_screen()
+        assert result == "show_student"
+    
+    # Test reload
+    input_value = "1"
+    result = app.my_network_screen()
+    assert result == "reload"
+
+def test_pending_friend_requests_screen(monkeypatch, capfd):
+    app = App() 
+    user1 = User("Testing", "", "Peter", "Doe", "English")
+    user2 = User("Software", "", "John", "Doe", "English")
+
+    User.users = {
+        "Testing": user1,
+        "Software": user2,
+    }
+    app.current_user = user1
+
+    def mock_input(*args):
+        nonlocal input_value
+
+        prompt = args[1]
+        if prompt == SELECT_OPTION_MESSAGE:
+            return input_value
+        
+        assert False
+    
+    # Replaces App handle_input method by mock_input
+    monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App show_student_options method by a lambda function that returns show_student
+    monkeypatch.setattr(App, "show_student_options", lambda *args: "show_student")
+    # Replaces App reload_screen method by a lambda function that returns reload
+    monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
+
+    # Test go back no results
+    input_value = GO_BACK_KEY
+    result = app.pending_friend_requests_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name not in out
+    assert user2.first_name not in out
+
+    # Test go back with results
+    user1.received_friend_requests = [user2.username]
+
+    input_value = GO_BACK_KEY
+    result = app.pending_friend_requests_screen()
+    assert result == "go_back"
+    out, _ = capfd.readouterr()
+    assert user1.first_name not in out
+    assert user2.first_name in out
+    
+    # Test show user successfull
+    for i in range(1):
+        input_value = str(i)
+        result = app.pending_friend_requests_screen()
+        assert result == "show_student"
+    
+    # Test reload
+    input_value = "1"
+    result = app.pending_friend_requests_screen()
+    assert result == "reload"
+
+def test_user_dashboard(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "", "Peter", "Doe", "English")
+    app.current_user = user
 
     def mock_input(*args):
         nonlocal input_value
@@ -1895,31 +2399,34 @@ def test_user_dashboard(monkeypatch):
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
     # Replaces App job_menu_screen function by a lambda function that returns job_menu
     monkeypatch.setattr(App, "job_menu_screen", lambda *args: "job_menu")
-    # Replaces App find_someone_screen function by a lambda function that returns find_someone
-    monkeypatch.setattr(App, "find_someone_screen", lambda *args: "find_someone")
+    # Replaces App search_students_screen function by a lambda function that returns search_students
+    monkeypatch.setattr(App, "search_students_screen", lambda *args: "search_students")
     # Replaces App new_skills_screen function by a lambda function that returns new_skills
     monkeypatch.setattr(App, "new_skills_screen", lambda *args: "new_skills")
     # Replaces App useful_links_screen method by a lambda function that returns useful_links
     monkeypatch.setattr(App, "useful_links_screen", lambda *args: "useful_links")
     # Replaces App important_links_screen method by a lambda function that returns important_links
     monkeypatch.setattr(App, "important_links_screen", lambda *args: "important_links")
+    # Replaces App edit_profile_screen method by a lambda function that returns edit_profile
+    monkeypatch.setattr(App, "edit_profile_screen", lambda *args: "edit_profile")
+    # Replaces App show_profile_screen method by a lambda function that returns show_profile
+    monkeypatch.setattr(App, "show_profile_screen", lambda *args: "show_profile")
+    # Replaces App my_network_screen method by a lambda function that returns my_network
+    monkeypatch.setattr(App, "my_network_screen", lambda *args: "my_network")
+    # Replaces App pending_friend_requests_screen method by a lambda function that returns friend_requests
+    monkeypatch.setattr(App, "pending_friend_requests_screen", lambda *args: "friend_requests")
     # Replaces App reload_screen method by a lambda function that returns reload
     monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
-
-    # Test go back
-    input_value = GO_BACK_KEY
-    result = app.user_dashboard()
-    assert result == "go_back"
 
     # Test job menu
     input_value = "0"
     result = app.user_dashboard()
     assert result == "job_menu"
 
-    # Test find someone    
+    # Test search students    
     input_value = "1"
     result = app.user_dashboard()
-    assert result == "find_someone"
+    assert result == "search_students"
 
     # Test new skills
     input_value = "2"
@@ -1936,7 +2443,43 @@ def test_user_dashboard(monkeypatch):
     result = app.user_dashboard()
     assert result == "important_links"
 
+    # Test edit profile
+    input_value = "5"
+    result = app.user_dashboard()
+    assert result == "edit_profile"
+
+    # Test show profile
+    input_value = "6"
+    result = app.user_dashboard()
+    assert result == "show_profile"
+
+    # Test my network
+    input_value = "7"
+    result = app.user_dashboard()
+    assert result == "my_network"
+
+    # Test friend requests
+    input_value = "8"
+    result = app.user_dashboard()
+    assert result == "friend_requests"
+
     # Test reload
-    input_value = "-1"
+    input_value = "9"
     result = app.user_dashboard()
     assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert PENDING_FRIEND_REQUEST_MESSAGE not in out
+
+    # Test pending friend request
+    user.received_friend_requests = ["user2"]
+    input_value = "9"
+    result = app.user_dashboard()
+    assert result == "reload"
+    out, _ = capfd.readouterr()
+    assert PENDING_FRIEND_REQUEST_MESSAGE in out
+
+    # Test go back
+    input_value = GO_BACK_KEY
+    result = app.user_dashboard()
+    assert result == "go_back"
+    assert app.current_user == None

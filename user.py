@@ -10,6 +10,12 @@ PASSWORD_CAPITAL_LETTER_ERROR_MESSAGE = "The password must have at least one cap
 PASSWORD_DIGIT_ERROR_MESSAGE = "The password must have at least one digit."
 PASSWORD_NON_ALPHA_ERROR_MESSAGE = "The password must have at least one non-alpha character."
 MAX_ALLOWED_ACCOUNTS_ERROR_MESSAGE = "All permitted accounts have been created, please come backlater"
+CONNECT_TO_SELF_ERROR_MESSAGE = "You can not connect to yourself."
+CONNECT_TO_FRIEND_ERROR_MESSAGE = "You are already its friend."
+RESEND_CONNECT_ERROR_MESSAGE = "You have already requested connection."
+CONNECTION_REQUEST_PENDING_ERROR_MESSAGE = "You have a pending connection with this user."
+CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE = "Connetion request not found."
+CONNECTION_NOT_FOUND_ERROR_MESSAGE = "Connection not found."
 
 MAX_USERS = 10
 
@@ -27,6 +33,9 @@ class User:
         self.sms_notifications = True
         self.targeted_ads = True
         self.app_language = app_language
+        self.friends = []
+        self.sent_friend_requests = []
+        self.received_friend_requests = []
 
     # Opens and loads the uses file. If the path isn't found, it creates one.
     @staticmethod
@@ -124,7 +133,6 @@ class User:
         self.targeted_ads = not self.targeted_ads
         User.update_users_file()
 
-    # Find a user by name 
     @staticmethod
     def find_by_name(first_name, last_name):
         """
@@ -141,3 +149,75 @@ class User:
                 return user
         
         return None
+
+    @staticmethod
+    def find_users_by_last_name(last_name):
+        users = []
+        for user in User.users.values():
+            if user.last_name.lower() == last_name.lower():
+                users.append(user)
+        
+        return users
+
+    @staticmethod
+    def find_users_by_university(university):
+        users = []
+        for user in User.users.values():
+            if user.profile and user.profile.university.lower() == university.lower():
+                users.append(user)
+        
+        return users
+    
+    @staticmethod
+    def find_users_by_major(major):
+        users = []
+        for user in User.users.values():
+            if user.profile and user.profile.major.lower() == major.lower():
+                users.append(user)
+        
+        return users
+    
+    def request_connection(self, user):
+        if self == user:
+            return CONNECT_TO_SELF_ERROR_MESSAGE
+
+        if user.username in self.sent_friend_requests:
+            return RESEND_CONNECT_ERROR_MESSAGE
+        
+        if user.username in self.received_friend_requests:
+            return CONNECTION_REQUEST_PENDING_ERROR_MESSAGE
+
+        if user.username in self.friends:
+            return CONNECT_TO_FRIEND_ERROR_MESSAGE
+        
+        self.sent_friend_requests.append(user.username)
+        user.received_friend_requests.append(self.username)
+        User.update_users_file()
+
+    def accept_connection(self, user):
+        if user.username not in self.received_friend_requests:
+            return CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE
+        
+        self.friends.append(user.username)
+        self.received_friend_requests.remove(user.username)
+        
+        user.friends.append(self.username)
+        user.sent_friend_requests.remove(self.username)
+        User.update_users_file()
+
+    def reject_connection(self, user):
+        if user.username not in self.received_friend_requests:
+            return CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE
+        
+        self.received_friend_requests.remove(user.username)
+        user.sent_friend_requests.remove(self.username)
+        User.update_users_file()
+
+    def disconnect(self, user):
+        if user.username not in self.friends:
+            return CONNECTION_NOT_FOUND_ERROR_MESSAGE
+        
+        self.friends.remove(user.username)
+        user.friends.remove(self.username)
+        User.update_users_file()
+    

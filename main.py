@@ -58,13 +58,17 @@ EDUCATION_ADDED_MESSAGE = "Education added succesfully!"
 EDUCATION_REMOVED_MESSAGE = "Education removed successful!"
 NO_PROFILE_YET_MESSAGE = "You do not have a profile to view yet. "\
     "Please return to dashboard and select 'Edit Profile'"
-
+CONNECTION_REQUESTED_MESSAGE = "Connection requested!"
+CONNECTION_ACEPTED_MESSAGE = "Connection acepted!"
+CONNECTION_REJECTED_MESSAGE = "Connection rejected."
+DISCONNECTED_MESSAGE = "Disconnected."
+PENDING_FRIEND_REQUEST_MESSAGE = "You have a pending friend request."
 
 def screen(method):
-    def wrapper(app):
-        app.history.append(method.__name__)
+    def wrapper(app, *args):
+        app.history.append((method.__name__, args))
         print(f"\n{'=' * TEXT_WIDTH}\n")
-        return method(app)
+        return method(app, *args)
 
     return wrapper
 
@@ -93,6 +97,7 @@ class App:
     def __init__(self):
         self.history = deque()
         self.current_user = None
+        self.search_term = ""
 
     @staticmethod
     def load_success_story():
@@ -146,12 +151,12 @@ class App:
         """
         try:
             self.history.pop()
-            function_name = self.history.pop()
+            function_name, args = self.history.pop()
         except IndexError:
             return None
 
         back = getattr(self, function_name)
-        return back()
+        return back(*args)
 
     def reload_screen(self):
         """
@@ -161,9 +166,9 @@ class App:
         if len(self.history) == 0:
             return None
 
-        function_name = self.history.pop()
+        function_name, args = self.history.pop()
         current_screen = getattr(self, function_name)
-        return current_screen()
+        return current_screen(*args)
 
     def handle_input(self, prompt, input_type=str):
         """
@@ -418,12 +423,12 @@ class App:
         return self.reload_screen()
 
     @screen
-    def view_profile_screen(self):
+    def show_profile_screen(self, user):
         print("Profile", end="\n\n")
-        profile = self.current_user.profile
+        profile = user.profile
         
         if profile:
-            print("\t\t\t\t\t\t\t\t\t\t\t", self.current_user.first_name, self.current_user.last_name)
+            print(user.first_name, user.last_name)
             print("Title: ", profile.title)
             print("Major: ", profile.major)
             print("University: ", profile.university)
@@ -444,11 +449,11 @@ class App:
                 print("\tDegree: ", education.degree)
                 print("\tYears Attended:", education.years_attended)
                 print("==========================")
-        else:
+        elif user == self.current_user:
             print(NO_PROFILE_YET_MESSAGE)
 
         option = self.handle_input(GO_BACK_MESSAGE)
-        if option == "b":
+        if option == GO_BACK_KEY:
             return self.go_back()
 
         return self.reload_screen()
@@ -858,7 +863,7 @@ class App:
         print("4. Useful Links")
         print("5. InCollege Important Links")
         print("b. Exit")
-        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+        choice = self.handle_input(SELECT_OPTION_MESSAGE)
 
         if choice == GO_BACK_KEY:
             return self.go_back()
@@ -877,19 +882,236 @@ class App:
 
         print("Invalid choice. Try again.")
         return self.reload_screen()
+    
+    @screen 
+    def search_students_screen(self):
+        print("Search students", end="\n\n")
+        print("0. Search by last name")
+        print("1. Search by university")
+        print("2. Search by major")
+        print("b. Go back")
+        choice = self.handle_input(SELECT_OPTION_MESSAGE)
+
+        if choice == GO_BACK_KEY:
+            return self.go_back()
+        elif choice == "0":
+            return self.search_students_by_last_name_screen()
+        elif choice == "1":
+            return self.search_students_by_university_screen()
+        elif choice == "2":
+            return self.search_students_by_major_screen()
+        
+        print("Invalid choice. Try again.")
+        return self.reload_screen()
+
+    @screen
+    def search_students_by_last_name_screen(self):
+        print("Search students by last name", end="\n\n")
+        last_name = input(TYPE_LAST_NAME_MESSAGE)
+        users_list = User.find_users_by_last_name(last_name)
+        
+        # Removes this screen from the history
+        self.history.pop()
+        return self.search_students_result_screen(users_list)
+    
+    @screen
+    def search_students_by_university_screen(self):
+        print("Search students by university", end="\n\n")
+        university = input(TYPE_NAME_OF_UNIVERSITY)
+        users_list = User.find_users_by_university(university)
+        
+        # Removes this screen from the history
+        self.history.pop()
+        return self.search_students_result_screen(users_list)
+    
+    @screen
+    def search_students_by_major_screen(self):
+        print("Search students by major", end="\n\n")
+        major = input(TYPE_MAJOR_MESSAGE)
+        users_list = User.find_users_by_major(major)
+        
+        # Removes this screen from the history
+        self.history.pop()
+        return self.search_students_result_screen(users_list)
+
+    @screen
+    def search_students_result_screen(self, users_list):
+        print("Search students results", end="\n\n")
+        for index, user in enumerate(users_list):
+            print(f"{index}. {user.first_name} {user.last_name}")
+        print("b. Go back")
+        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+
+        if choice == GO_BACK_KEY:
+            return self.go_back()
+        
+        choice = int(choice)
+        if choice >= 0 and choice < len(users_list):
+            return self.show_student_options(users_list[choice])
+        
+        print("Invalid choice. Try again.")
+        return self.reload_screen()
+    
+    @screen
+    def show_student_options(self, user):
+        print(f"Student {user.first_name} {user.last_name}", end="\n\n")
+        
+        is_self = self.current_user == user
+        is_friend = user.username in self.current_user.friends
+        sent_request = user.username in self.current_user.sent_friend_requests
+        received_request = user.username in self.current_user.received_friend_requests
+
+        options = []        
+        if received_request:
+            options.append({
+                "message": "Accept connection",
+                "function": self.accept_connection_screen,
+            })
+            options.append({
+                "message": "Reject connection",
+                "function": self.reject_connection_screen,
+            })
+        
+        if (is_friend or is_self) and user.profile:
+            options.append({
+                "message": "Show profile",
+                "function": self.show_profile_screen,
+            })
+            
+        if is_friend:
+            options.append({
+                "message": "Disconnect",
+                "function": self.disconnect_screen,
+            })
+
+        if not is_self and not is_friend and not sent_request and not received_request:
+            options.append({
+                "message": "Request connection",
+                "function": self.request_connection_screen,
+            })
+        
+        for index, option in enumerate(options):
+            print(f"{index}. {option['message']}")
+        print("b. Go back")
+        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+
+        if choice == GO_BACK_KEY:
+            return self.go_back()
+        
+        choice = int(choice)
+        if choice >= 0 and choice < len(options):
+            option = options[choice]
+            return option["function"](user)
+        
+        print("Invalid choice. Try again.")
+        return self.reload_screen()
+
+    @screen
+    def request_connection_screen(self, user):
+        print(f"Request connection with {user.first_name}", end="\n\n")
+        error_message = self.current_user.request_connection(user)
+        if error_message:
+            print(error_message)
+        else:
+            print(CONNECTION_REQUESTED_MESSAGE)
+        
+        return self.go_back()
+
+    @screen
+    def accept_connection_screen(self, user):
+        print(f"Accept connection with {user.first_name}", end="\n\n")
+        error_message = self.current_user.accept_connection(user)
+        if error_message:
+            print(error_message)
+        else:
+            print(CONNECTION_ACEPTED_MESSAGE)
+        
+        return self.go_back()
+
+    @screen
+    def reject_connection_screen(self, user):
+        print(f"Reject connection with {user.first_name}", end="\n\n")
+        error_message = self.current_user.reject_connection(user)
+        if error_message:
+            print(error_message)
+        else:
+            print(CONNECTION_REJECTED_MESSAGE)
+
+        return self.go_back()
+
+    @screen
+    def disconnect_screen(self, user):
+        print(f"Disconnect from {user.first_name}", end="\n\n")
+        error_message = self.current_user.disconnect(user)
+        if error_message:
+            print(error_message)
+        else:
+            print(DISCONNECTED_MESSAGE)
+
+        return self.go_back()
+    
+    @screen
+    def my_network_screen(self):
+        users_list = self.current_user.friends
+
+        print("My network", end="\n\n")
+        for index, username in enumerate(users_list):
+            user = User.users[username]
+            print(f"{index}. {user.first_name} {user.last_name}")
+        print("b. Go back")
+        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+
+        if choice == GO_BACK_KEY:
+            return self.go_back()
+        
+        choice = int(choice)
+        if choice >= 0 and choice < len(users_list):
+            user = User.users[users_list[choice]]
+            return self.show_student_options(user)
+        
+        print("Invalid choice. Try again.")
+        return self.reload_screen()
+    
+    @screen
+    def pending_friend_requests_screen(self):
+        users_list = self.current_user.received_friend_requests
+
+        print("Pending friend requests", end="\n\n")
+        for index, username in enumerate(users_list):
+            user = User.users[username]
+            print(f"{index}. {user.first_name} {user.last_name}")
+        print("b. Go back")
+        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+
+        if choice == GO_BACK_KEY:
+            return self.go_back()
+        
+        choice = int(choice)
+        if choice >= 0 and choice < len(users_list):
+            user = User.users[users_list[choice]]
+            return self.show_student_options(user)
+        
+        print("Invalid choice. Try again.")
+        return self.reload_screen()
 
     @screen
     def user_dashboard(self):
         print("Welcome to InCollege!", end="\n\n")
+
+        if len(self.current_user.received_friend_requests) > 0:
+            print(PENDING_FRIEND_REQUEST_MESSAGE, end="\n\n")
+
         print("0. Job Search/Internship")
-        print("1. Find Someone You Know")
+        print("1. Search students")
         print("2. Learn a New Skill")
         print("3. Useful Links")
         print("4. InCollege Important Links")
         print("5. Edit Profile")
         print("6. View Profile")
+        print("7. Show my network")
+        print("8. Pending friend requests")
         print("b. Sign Out")
-        choice = self.handle_input(SELECT_OPTION_MESSAGE, int)
+        choice = self.handle_input(SELECT_OPTION_MESSAGE)
 
         if choice == GO_BACK_KEY:
             self.current_user = None
@@ -897,7 +1119,7 @@ class App:
         elif choice == "0":
             return self.job_menu_screen()
         elif choice == "1":
-            return self.find_someone_screen()
+            return self.search_students_screen()
         elif choice == "2":
             return self.new_skills_screen()
         elif choice == "3":
@@ -907,7 +1129,11 @@ class App:
         elif choice == "5":
             return self.edit_profile_screen()
         elif choice == "6":
-            return self.view_profile_screen()
+            return self.show_profile_screen(self.current_user)
+        elif choice == "7":
+            return self.my_network_screen()
+        elif choice == "8":
+            return self.pending_friend_requests_screen()
 
         print("Invalid choice. Try again.")
         return self.reload_screen()
