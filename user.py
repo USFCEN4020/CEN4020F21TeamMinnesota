@@ -2,6 +2,8 @@ import hashlib
 import pickle
 
 from os import path
+from datetime import datetime
+from message import READ_STATUS, Message
 
 INVALID_USERNAME_ERROR_MESSAGE = "The username is empty."
 USERNAME_IN_USE_ERROR_MESSAGE = "The username is in use."
@@ -16,6 +18,17 @@ RESEND_CONNECT_ERROR_MESSAGE = "You have already requested connection."
 CONNECTION_REQUEST_PENDING_ERROR_MESSAGE = "You have a pending connection with this user."
 CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE = "Connetion request not found."
 CONNECTION_NOT_FOUND_ERROR_MESSAGE = "Connection not found."
+JOB_ALREADY_SAVED_ERROR_MESSAGE = "Job already saved."
+SAVED_JOB_NOT_FOUND_ERROR_MESSAGE = "Saved job not found."
+JOB_ALREADY_APPLIED_ERROR_MESSAGE = "Job already applied."
+APPLIED_JOB_NOT_FOUND_ERROR_MESSAGE = "Applied job not found."
+DUPLICATED_MESSAGE_ID_ERROR_MESSAGE = "Duplicated error id."
+SEND_MESSAGE_TO_SELF_ERROR_MESSAGE = "You can not send a message to yourself."
+MESSAGE_ID_NOT_FOUND_ERROR_MESSAGE = "Message id not found."
+STANDARD_TIER_NAME = "standard"
+PLUS_TIER_NAME = "plus"
+JOINED_INCOLLEGE_MESSAGE = "x has joined InCollege"
+JOB_APPLIED_DELETED_BY_AUTHOR_MESSAGE =  "A job you have applied for has been deleted"
 
 MAX_USERS = 10
 
@@ -23,7 +36,7 @@ class User:
     USERS_FILE_NAME = "users.pickle"
     users = {}
 
-    def __init__(self, username, password, first_name, last_name, app_language):
+    def __init__(self, username, password, first_name, last_name, app_language, tier):
         self.username = username
         self.password = password
         self.first_name = first_name
@@ -33,9 +46,14 @@ class User:
         self.sms_notifications = True
         self.targeted_ads = True
         self.app_language = app_language
+        self.tier = tier
         self.friends = []
         self.sent_friend_requests = []
         self.received_friend_requests = []
+        self.applied_jobs = set()
+        self.saved_jobs = set()
+        self.inbox = {}
+        self.notifications = []
 
     # Opens and loads the uses file. If the path isn't found, it creates one.
     @staticmethod
@@ -120,7 +138,7 @@ class User:
         self.password = User.hash_password(self.password)
         User.users[self.username] = self
         User.update_users_file()
-
+        
     def toggle_email_notifications(self):
         self.email_notifications = not self.email_notifications
         User.update_users_file()
@@ -131,6 +149,34 @@ class User:
 
     def toggle_targeted_ads(self):
         self.targeted_ads = not self.targeted_ads
+        User.update_users_file()
+
+    def save_job(self, job_id):
+        if job_id in self.saved_jobs:
+            return JOB_ALREADY_SAVED_ERROR_MESSAGE
+
+        self.saved_jobs.add(job_id)
+        User.update_users_file()
+    
+    def remove_saved_job(self, job_id):
+        if job_id not in self.saved_jobs:
+            return SAVED_JOB_NOT_FOUND_ERROR_MESSAGE
+        
+        self.saved_jobs.remove(job_id)
+        User.update_users_file()
+
+    def save_applied_job(self, job_id):
+        if job_id in self.applied_jobs:
+            return JOB_ALREADY_APPLIED_ERROR_MESSAGE
+
+        self.applied_jobs.add(job_id)
+        User.update_users_file()
+    
+    def remove_applied_job(self, job_id):
+        if job_id not in self.applied_jobs:
+            return APPLIED_JOB_NOT_FOUND_ERROR_MESSAGE
+        
+        self.applied_jobs.remove(job_id)
         User.update_users_file()
 
     @staticmethod
@@ -221,3 +267,68 @@ class User:
         user.friends.remove(self.username)
         User.update_users_file()
     
+    def send_message(self, user, content):
+        if self == user:
+            return SEND_MESSAGE_TO_SELF_ERROR_MESSAGE
+        
+        date_now = datetime.now()
+        message = Message(self.username, content, date_now)
+        message.id = Message.next_message_id
+        
+        if message.id in user.inbox:
+            return DUPLICATED_MESSAGE_ID_ERROR_MESSAGE
+        
+        user.inbox[message.id] = message
+        User.update_users_file()
+
+        Message.next_message_id += 1
+        Message.update_next_message_id_file()
+    
+    def mark_message_on_inbox_as_read(self, message_id):
+        if message_id not in self.inbox:
+            return MESSAGE_ID_NOT_FOUND_ERROR_MESSAGE
+        
+        self.inbox[message_id].status = READ_STATUS
+        User.update_users_file()
+    
+    def delete_message_from_inbox(self, message_id):
+        if message_id not in self.inbox:
+            return MESSAGE_ID_NOT_FOUND_ERROR_MESSAGE
+        
+        self.inbox.pop(message_id)
+        User.update_users_file()
+    
+    def broadcast_new_user_notification(self):
+        message = f"{self.first_name} {self.last_name} {JOINED_INCOLLEGE_MESSAGE}."
+
+        for user in User.users.values():
+            if user != self:
+                user.notifications.append(message)
+
+        User.update_users_file()
+    
+    def broadcast_new_job_notification(self, job):
+        message = f"A new job {job.title} has been posted."
+
+        for user in User.users.values():
+            if user != self:
+                user.notifications.append(message)
+
+        User.update_users_file()
+    
+    def broadcast_job_applied_deleted_notification(self, job):
+        message = JOB_APPLIED_DELETED_BY_AUTHOR_MESSAGE
+        message += f", {job.title}."
+
+        for user in User.users.values():
+            if user != self and job.id in user.applied_jobs:
+                user.notifications.append(message)
+
+        User.update_users_file()
+    
+    def pop_notification(self):
+        notification = self.notifications.pop()
+        User.update_users_file()
+
+        return notification
+        

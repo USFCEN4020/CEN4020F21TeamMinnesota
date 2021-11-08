@@ -1,8 +1,10 @@
 from user import User
+
 MAX_EXPERIENCE = 3
 MAX_ALLOWED_EXPERIENCES_ERROR_MESSAGE = "Maximum number of job experience reached. (3)"
 EXPERIENCE_INDEX_OUT_OF_RANGE = "Experience index out of range."
 EDUCATION_INDEX_OUT_OF_RANGE = "Education index out of range."
+
 
 class Profile:
     def __init__(self):
@@ -19,7 +21,7 @@ class Profile:
 
         self.experience.append(experience)
         User.update_users_file()
-    
+
     def delete_experience(self, index):
         if index < 0 or index >= len(self.experience):
             return EXPERIENCE_INDEX_OUT_OF_RANGE
@@ -37,5 +39,3 @@ class Profile:
 
         self.education.pop(index)
         User.update_users_file()
-
-

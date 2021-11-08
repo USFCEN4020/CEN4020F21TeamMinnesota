@@ -3,13 +3,17 @@ import io
 import pickle
 
 from os import path
-from user import CONNECT_TO_FRIEND_ERROR_MESSAGE, CONNECT_TO_SELF_ERROR_MESSAGE, CONNECTION_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_PENDING_ERROR_MESSAGE, MAX_ALLOWED_ACCOUNTS_ERROR_MESSAGE, MAX_USERS, RESEND_CONNECT_ERROR_MESSAGE, USERNAME_IN_USE_ERROR_MESSAGE,\
+from user import APPLIED_JOB_NOT_FOUND_ERROR_MESSAGE, CONNECT_TO_FRIEND_ERROR_MESSAGE, CONNECT_TO_SELF_ERROR_MESSAGE,\
+    CONNECTION_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_PENDING_ERROR_MESSAGE,\
+    JOB_ALREADY_APPLIED_ERROR_MESSAGE, JOB_ALREADY_SAVED_ERROR_MESSAGE, JOB_APPLIED_DELETED_BY_AUTHOR_MESSAGE, JOINED_INCOLLEGE_MESSAGE, MAX_ALLOWED_ACCOUNTS_ERROR_MESSAGE, MAX_USERS, \
+        RESEND_CONNECT_ERROR_MESSAGE, SAVED_JOB_NOT_FOUND_ERROR_MESSAGE, STANDARD_TIER_NAME, USERNAME_IN_USE_ERROR_MESSAGE,\
     PASSWORD_DIGIT_ERROR_MESSAGE, PASSWORD_CAPITAL_LETTER_ERROR_MESSAGE, PASSWORD_LENGTH_ERROR_MESSAGE, \
     INVALID_USERNAME_ERROR_MESSAGE, User
 from profile import Profile
+from job import Job
 
 def test__init__():
-    user = User("Testing", "Testing@12", "John", "Connor", "English")
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
     assert user.username == "Testing"
     assert user.password == "Testing@12"
     assert user.first_name == "John"
@@ -23,8 +27,8 @@ def test__init__():
     assert len(user.received_friend_requests) == 0
 
 def test_load_users_file(monkeypatch):    
-    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English")
-    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "Spanish")
+    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "Spanish", STANDARD_TIER_NAME)
 
     users = {
         "Testing": user1,
@@ -88,8 +92,8 @@ def test_update_users_file(monkeypatch):
     # Replaces open buildt-in function with mock_open
     monkeypatch.setattr(builtins, "open", mock_open)
 
-    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English")
-    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "English")
+    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -131,8 +135,8 @@ def test_hash_password():
     assert password == "ee87468f676f3a81e95f77cff2abd9d1"
 
 def test_login():
-    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English")
-    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "English")
+    user1 = User("Testing", User.hash_password("Testing@12"), "John", "Connor", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", User.hash_password("Software$89"), "John", "Doe", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -160,13 +164,13 @@ def test_save(monkeypatch):
     monkeypatch.setattr(User, "update_users_file", lambda: None)
     User.users = {}
 
-    user1 = User("Test", "Testing@12", "John", "Connor", "English")
-    user2 = User("", "Testing@12", "John", "Doe", "English")
-    user3 = User("Test", "Testing@12", "Peter", "Parker", "English")
-    user4 = User("Software", "software$89", "Tony", "Stark", "English")
-    user5 = User("Test1", "Testing@", "John", "Parker", "English")
-    user6 = User("Test2", "Test2", "John", "Stark", "English")
-    user7 = User("Test3", "Testing@12345", "Tony", "Connor", "English")
+    user1 = User("Test", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+    user2 = User("", "Testing@12", "John", "Doe", "English", STANDARD_TIER_NAME)
+    user3 = User("Test", "Testing@12", "Peter", "Parker", "English", STANDARD_TIER_NAME)
+    user4 = User("Software", "software$89", "Tony", "Stark", "English", STANDARD_TIER_NAME)
+    user5 = User("Test1", "Testing@", "John", "Parker", "English", STANDARD_TIER_NAME)
+    user6 = User("Test2", "Test2", "John", "Stark", "English", STANDARD_TIER_NAME)
+    user7 = User("Test3", "Testing@12345", "Tony", "Connor", "English", STANDARD_TIER_NAME)
 
     # Test save successful
     error_message = user1.save()
@@ -193,17 +197,17 @@ def test_save(monkeypatch):
 
     # Test max number of users reached
     for i in range(9):
-        user = User(f"Test_{i}", "Testing@12", "John", f"Connor_{i}", "English")
+        user = User(f"Test_{i}", "Testing@12", "John", f"Connor_{i}", "English", STANDARD_TIER_NAME)
         error_message = user.save()
         assert error_message == None
 
-    user = User("Test_9", "Testing@12", "John", "Connor", "English")
+    user = User("Test_9", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
     error_message = user.save()
     assert error_message == MAX_ALLOWED_ACCOUNTS_ERROR_MESSAGE
     assert len(User.users) == MAX_USERS
 
 def test_toggle_email_notifications(monkeypatch):
-    user = User("Testing", "Testing@12", "John", "Connor", "English")
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -217,7 +221,7 @@ def test_toggle_email_notifications(monkeypatch):
     assert user.email_notifications == True
 
 def test_toggle_sms_notifications(monkeypatch):
-    user = User("Testing", "Testing@12", "John", "Connor", "English")
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -231,7 +235,7 @@ def test_toggle_sms_notifications(monkeypatch):
     assert user.sms_notifications == True
 
 def test_toggle_targeted_ads(monkeypatch):
-    user = User("Testing", "Testing@12", "John", "Connor", "English")
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -244,9 +248,79 @@ def test_toggle_targeted_ads(monkeypatch):
     user.toggle_targeted_ads()
     assert user.targeted_ads == True
 
+def test_save_job(monkeypatch):
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test add saved job sucessful
+    assert len(user.saved_jobs) == 0
+    error_message = user.save_job(0)
+    assert error_message == None
+    assert len(user.saved_jobs) == 1
+
+    # Test job already saved error
+    error_message = user.save_job(0)
+    assert error_message == JOB_ALREADY_SAVED_ERROR_MESSAGE
+    assert len(user.saved_jobs) == 1
+
+def test_remove_saved_job(monkeypatch):
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+    user.saved_jobs = [0]
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test remove saved job sucessful
+    assert len(user.saved_jobs) == 1
+    error_message = user.remove_saved_job(0)
+    assert error_message == None
+    assert len(user.saved_jobs) == 0
+
+    # Test job not found error
+    error_message = user.remove_saved_job(0)
+    assert error_message == SAVED_JOB_NOT_FOUND_ERROR_MESSAGE
+    assert len(user.saved_jobs) == 0
+
+def test_save_applied_job(monkeypatch):
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test add applied job sucessful
+    assert len(user.applied_jobs) == 0
+    error_message = user.save_applied_job(0)
+    assert error_message == None
+    assert len(user.applied_jobs) == 1
+
+    # Test job already applied error
+    error_message = user.save_applied_job(0)
+    assert error_message == JOB_ALREADY_APPLIED_ERROR_MESSAGE
+    assert len(user.applied_jobs) == 1
+
+def test_remove_applied_job(monkeypatch):
+    user = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+    user.applied_jobs = [0]
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test remove saved job sucessful
+    assert len(user.applied_jobs) == 1
+    error_message = user.remove_applied_job(0)
+    assert error_message == None
+    assert len(user.applied_jobs) == 0
+
+    # Test job not found error
+    error_message = user.remove_applied_job(0)
+    assert error_message == APPLIED_JOB_NOT_FOUND_ERROR_MESSAGE
+    assert len(user.applied_jobs) == 0
+
 def test_find_by_name():
-    user1 = User("Testing", "Testing@12", "John", "Connor", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "John", "Connor", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -262,9 +336,9 @@ def test_find_by_name():
     assert user == None
 
 def test_find_users_by_last_name():
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
-    user3 = User("Engineering", "Software$89", "John", "Brown", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
+    user3 = User("Engineering", "Software$89", "John", "Brown", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -281,15 +355,15 @@ def test_find_users_by_last_name():
     assert result == []
 
 def test_find_users_by_university():
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     user1.profile = Profile()
     user1.profile.university = "USF"
 
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
     user2.profile = Profile()
     user2.profile.university = "USF"
 
-    user3 = User("Engineering", "Software$89", "John", "Brown", "English")
+    user3 = User("Engineering", "Software$89", "John", "Brown", "English", STANDARD_TIER_NAME)
     user3.profile = Profile()
     user3.profile.university = "UCF"
 
@@ -308,15 +382,15 @@ def test_find_users_by_university():
     assert result == []
 
 def test_find_users_by_major():
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     user1.profile = Profile()
     user1.profile.major = "Computer Science"
 
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
     user2.profile = Profile()
     user2.profile.major = "Computer Science"
 
-    user3 = User("Engineering", "Software$89", "John", "Brown", "English")
+    user3 = User("Engineering", "Software$89", "John", "Brown", "English", STANDARD_TIER_NAME)
     user3.profile = Profile()
     user3.profile.major = "Computer Engineering"
 
@@ -335,8 +409,8 @@ def test_find_users_by_major():
     assert result == []
 
 def test_request_connection(monkeypatch):
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -380,8 +454,8 @@ def test_request_connection(monkeypatch):
     assert user1.username in user2.received_friend_requests
 
 def test_accept_connection(monkeypatch):
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -405,10 +479,9 @@ def test_accept_connection(monkeypatch):
     assert len(user2.received_friend_requests) == 0
     assert user1.username in user2.friends
 
-
 def test_reject_connection(monkeypatch):
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -431,8 +504,8 @@ def test_reject_connection(monkeypatch):
     assert len(user2.received_friend_requests) == 0
 
 def test_disconnect(monkeypatch):
-    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English")
-    user2 = User("Software", "Software$89", "John", "Doe", "English")
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     # Replaces User update_users_file function by a lambda function that returns None
     monkeypatch.setattr(User, "update_users_file", lambda: None)
@@ -453,4 +526,86 @@ def test_disconnect(monkeypatch):
     assert len(user2.friends) == 0
     assert len(user2.sent_friend_requests) == 0
     assert len(user2.received_friend_requests) == 0
+
+def test_broadcast_new_user_notification(monkeypatch):
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
+    job = Job("SWE", "Just code!", "USF", "Tampa, FL", "80000")
+    
+    User.users = {
+        "Testing": user1,
+        "Software": user2
+    }
+
+    notification = f"{user2.first_name} {user2.last_name} {JOINED_INCOLLEGE_MESSAGE}."
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+    
+    # Test broadcast notification
+    user2.broadcast_new_user_notification()
+    assert notification in user1.notifications
+    assert len(user1.notifications) == 1
+    assert notification not in user2.notifications
+    assert len(user2.notifications) == 0
+
+def test_broadcast_new_job_notification(monkeypatch):
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
+    job = Job("SWE", "Just code!", "USF", "Tampa, FL", "80000")
+
+    User.users = {
+        "Testing": user1,
+        "Software": user2
+    }
+
+    notification = f"A new job {job.title} has been posted."
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test broadcast notification
+    user2.broadcast_new_job_notification(job)
+    assert notification in user1.notifications
+    assert len(user1.notifications) == 1
+    assert notification not in user2.notifications
+    assert len(user2.notifications) == 0
+
+def test_broadcast_job_applied_deleted_notification(monkeypatch):
+    user1 = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "Software$89", "John", "Doe", "English", STANDARD_TIER_NAME)
+    
+    job = Job("SWE", "Just code!", "USF", "Tampa, FL", "80000")
+    job.id = 0
+
+    User.users = {
+        "Testing": user1,
+        "Software": user2
+    }
+
+    notification = f"{JOB_APPLIED_DELETED_BY_AUTHOR_MESSAGE}, {job.title}."
+    user1.applied_jobs = set([0])
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test broadcast notification
+    user2.broadcast_job_applied_deleted_notification(job)
+    assert notification in user1.notifications
+    assert len(user1.notifications) == 1
+    assert notification not in user2.notifications
+    assert len(user2.notifications) == 0
+
+def test_pop_notification(monkeypatch):
+    user = User("Testing", "Testing@12", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user.notifications = ["Hello", "World"]
+
+    # Replaces User update_users_file function by a lambda function that returns None
+    monkeypatch.setattr(User, "update_users_file", lambda: None)
+
+    # Test pop notification
+    assert len(user.notifications) == 2
+    notification = user.pop_notification()
+    assert notification == "World"
+    assert len(user.notifications) == 1
     

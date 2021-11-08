@@ -2,15 +2,21 @@ import builtins
 import io
 
 from collections import deque
-from job import MAX_ALLOWED_JOBS_ERROR_MESSAGE, Job
-from main import CONNECTION_ACEPTED_MESSAGE, CONNECTION_REJECTED_MESSAGE, CONNECTION_REQUESTED_MESSAGE, CONTACT_FOUND_MESSAGE, CONTACT_NOT_FOUND_MESSAGE, DISCONNECTED_MESSAGE, EDIT_PROFILE_MESSAGE, EDUCATION_ADDED_MESSAGE, EDUCATION_REMOVED_MESSAGE, EXPERIENCE_ADDED_MESSAGE, EXPERIENCE_REMOVED_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, \
-    LOGIN_ERROR_MESSAGE, LOGIN_SUCCESSFUL_MESSAGE, NO_PROFILE_YET_MESSAGE, PENDING_FRIEND_REQUEST_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE, TYPE_DATE_ENDED_MESSAGE, TYPE_DATE_STARTED_MESSAGE, TYPE_DEGREE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
-    TYPE_JOB_DESCRIPTION_MESSAGE, TYPE_JOB_EMPLOYER_MESSAGE, TYPE_JOB_LOCATION_MESSAGE, \
-    TYPE_JOB_SALARY_MESSAGE, TYPE_JOB_TITLE_MESSAGE, TYPE_LAST_NAME_MESSAGE, TYPE_MAJOR_MESSAGE, TYPE_NAME_OF_UNIVERSITY, TYPE_SCHOOL_NAME_MESSAGE, TYPE_SUMMARY_MESSAGE, TYPE_TITLE_MESSAGE, TYPE_YEARS_ATTENDED_MESSAGE, UPDATE_WARRNING, VIDEO_PLAYNG_MESSAGE,\
-    GO_BACK_KEY, GO_BACK_MESSAGE, INVALID_INPUT_ERROR_MESSAGE, SELECT_NEW_SKILL_MESSAGE, \
-    SELECT_OPTION_MESSAGE, SKILLS, TYPE_PASSWORD_MESSAGE, TYPE_USERNAME_MESSAGE, \
-    UNDER_CONSTRUCTION_MESSAGE, USER_CREATED_MESSAGE, screen, App
-from user import CONNECT_TO_SELF_ERROR_MESSAGE, CONNECTION_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE, PASSWORD_LENGTH_ERROR_MESSAGE, User
+from job import JOB_NOT_FOUND_ERROR_MESSAGE, MAX_ALLOWED_JOBS_ERROR_MESSAGE, Job
+from main import CONNECTION_ACEPTED_MESSAGE, CONNECTION_REJECTED_MESSAGE, CONNECTION_REQUESTED_MESSAGE, CONTACT_FOUND_MESSAGE,\
+    CONTACT_NOT_FOUND_MESSAGE, DISCONNECTED_MESSAGE, DO_NOT_FORGET_PROFILE_MESSAGE, EDIT_PROFILE_MESSAGE, EDUCATION_ADDED_MESSAGE,\
+    EDUCATION_REMOVED_MESSAGE, EXPERIENCE_ADDED_MESSAGE, EXPERIENCE_REMOVED_MESSAGE, GENERAL_OPTION_ABOUT_MESSAGE, HELP_CENTER_MESSAGE,\
+    JOB_DELETED_MESSAGE, JOB_SAVED_MESSAGE, LANGUAGES, LAST_APPLICATION_SEVEN_DAYS_AGO_MESSAGE, LOGIN_ERROR_MESSAGE,\
+    LOGIN_SUCCESSFUL_MESSAGE, NO_PROFILE_YET_MESSAGE, PENDING_FRIEND_REQUEST_MESSAGE, PRESS_MESSAGE, SELECT_LANGUAGE_MESSAGE,\
+    SELECT_SUSCRIPTION_TYPE, TYPE_DATE_ENDED_MESSAGE, TYPE_DATE_STARTED_MESSAGE, TYPE_DEGREE_MESSAGE, TYPE_FIRST_NAME_MESSAGE, \
+    TYPE_JOB_DESCRIPTION_MESSAGE, TYPE_JOB_EMPLOYER_MESSAGE, TYPE_JOB_LOCATION_MESSAGE, TYPE_JOB_SALARY_MESSAGE, TYPE_JOB_TITLE_MESSAGE,\
+    TYPE_LAST_NAME_MESSAGE, TYPE_MAJOR_MESSAGE, TYPE_NAME_OF_UNIVERSITY, TYPE_SCHOOL_NAME_MESSAGE, TYPE_SUMMARY_MESSAGE,\
+    TYPE_TITLE_MESSAGE, TYPE_YEARS_ATTENDED_MESSAGE, UNREAD_MESSAGES_MESSAGE, UPDATE_WARRNING, VIDEO_PLAYNG_MESSAGE, GO_BACK_KEY,\
+    GO_BACK_MESSAGE, INVALID_INPUT_ERROR_MESSAGE, SELECT_NEW_SKILL_MESSAGE, SELECT_OPTION_MESSAGE, SKILLS, TYPE_PASSWORD_MESSAGE,\
+    TYPE_USERNAME_MESSAGE, UNDER_CONSTRUCTION_MESSAGE, USER_CREATED_MESSAGE, screen, App
+from message import Message
+from user import CONNECT_TO_SELF_ERROR_MESSAGE, CONNECTION_NOT_FOUND_ERROR_MESSAGE, CONNECTION_REQUEST_NOT_FOUND_ERROR_MESSAGE,\
+    PASSWORD_LENGTH_ERROR_MESSAGE, STANDARD_TIER_NAME, User
 from profile import Profile, EXPERIENCE_INDEX_OUT_OF_RANGE, EDUCATION_INDEX_OUT_OF_RANGE
 
 def test_screen():
@@ -278,7 +284,7 @@ def test_handle_go_back(monkeypatch):
 
 def test_add_experience_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -337,7 +343,7 @@ def test_add_experience_screen(monkeypatch, capfd):
 
 def test_delete_experience_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -464,7 +470,7 @@ def test_education_screen(monkeypatch):
 
 def test_add_education_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -514,7 +520,7 @@ def test_add_education_screen(monkeypatch, capfd):
 
 def test_delete_education_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -559,7 +565,7 @@ def test_delete_education_screen(monkeypatch, capfd):
 
 def test_edit_profile_title_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -594,7 +600,7 @@ def test_edit_profile_title_screen(monkeypatch, capfd):
 
 def test_edit_profile_major_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -629,7 +635,7 @@ def test_edit_profile_major_screen(monkeypatch, capfd):
 
 def test_edit_profile_university_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -664,7 +670,7 @@ def test_edit_profile_university_screen(monkeypatch, capfd):
 
 def test_edit_profile_summary_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -768,7 +774,7 @@ def test_edit_profile_screen(monkeypatch):
 
 def test_show_profile_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
 
     def mock_input(*args):
         nonlocal input_value
@@ -824,6 +830,9 @@ def test_register_user_screen(monkeypatch, capfd):
         input_counter += 1
 
         prompt = args[0]
+        if prompt == SELECT_SUSCRIPTION_TYPE:
+            return "0"
+
         if prompt == TYPE_USERNAME_MESSAGE:
             return "hello"
 
@@ -835,17 +844,30 @@ def test_register_user_screen(monkeypatch, capfd):
 
         if prompt == TYPE_LAST_NAME_MESSAGE:
             return "Connor"
+    
+    def broadcast_notification(*args):
+        nonlocal broadcast_notification_execution
+
+        assert len(args) == 1
+        broadcast_notification_execution += 1
 
     # Replaces python builtin input function with mock_input function
     monkeypatch.setattr(builtins, "input", mock_input)
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User broadcast_new_user_notification method by broadcast_notification function
+    monkeypatch.setattr(User, "broadcast_new_user_notification", broadcast_notification)
     
     # Test valid input
     
     # Replaces User save function with a lambda function that returns None
     monkeypatch.setattr(User, "save", lambda *args: None)
     input_counter = 0
-    app.register_user_screen()
-    assert input_counter == 4
+    broadcast_notification_execution = 0
+    result = app.register_user_screen()
+    assert result == "go_back"
+    assert input_counter == 5
+    assert broadcast_notification_execution == 1
     out, _ = capfd.readouterr()
     assert USER_CREATED_MESSAGE in out
 
@@ -854,8 +876,11 @@ def test_register_user_screen(monkeypatch, capfd):
     # Replaces User save function with a lambda function that returns a message
     monkeypatch.setattr(User, "save", lambda *args: PASSWORD_LENGTH_ERROR_MESSAGE)
     input_counter = 0
-    app.register_user_screen()
-    assert input_counter == 4
+    broadcast_notification_execution = 0
+    result = app.register_user_screen()
+    assert result == "go_back"
+    assert input_counter == 5
+    assert broadcast_notification_execution == 0
     out, _ = capfd.readouterr()
     assert PASSWORD_LENGTH_ERROR_MESSAGE in out
 
@@ -954,7 +979,7 @@ def test_find_someone_screen(monkeypatch, capfd):
     # Test user found
 
     # Replaces find_by_name User method by a lambda function that returns a user
-    user = User("Testing", User.hash_password("Testing@12"), "Jhonn", "Connor", LANGUAGES[0])
+    user = User("Testing", User.hash_password("Testing@12"), "Jhonn", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     monkeypatch.setattr(User, "find_by_name", lambda *args: user)
 
     # Test join your friends
@@ -1029,6 +1054,7 @@ def test_join_your_friends_screen(monkeypatch):
 
 def test_login_screen(monkeypatch, capfd):
     app = App()
+    user = User("Testing", "Testing@12", "Jhonn", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
 
     def mock_input(*args):
         nonlocal input_counter
@@ -1049,7 +1075,7 @@ def test_login_screen(monkeypatch, capfd):
     monkeypatch.setattr(App, "user_dashboard", lambda *args: "user_dashboard")
 
     User.users = {
-        "Testing": User.hash_password("Testing@12"),
+        "Testing": user,
     }
 
     # Test login suscefful
@@ -1106,7 +1132,9 @@ def test_play_video(monkeypatch, capfd):
     assert result == "reload"
 
 def test_job_menu_screen(monkeypatch):
-    app = App()    
+    app = App()
+    user = User("Testing", "Testing@12", "Jhonn", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
+    app.current_user = user 
 
     def mock_input(*args):
         nonlocal input_value
@@ -1119,6 +1147,8 @@ def test_job_menu_screen(monkeypatch):
     monkeypatch.setattr(App, "handle_input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces App list_all_jobs_screen method by a lambda function that returns list_all_jobs_screen
+    monkeypatch.setattr(App, "list_all_jobs_screen", lambda *args: "list_all_jobs_screen")
     # Replaces App post_job method by a lambda function that returns post_job
     monkeypatch.setattr(App, "post_job", lambda *args: "post_job")
     # Replaces App reload_screen method by a lambda function that returns reload
@@ -1129,8 +1159,13 @@ def test_job_menu_screen(monkeypatch):
     result = app.job_menu_screen()
     assert result == "go_back"
 
-    # Test post job
+    # Test list all jobs
     input_value = "0"
+    result = app.job_menu_screen()
+    assert result == "list_all_jobs_screen"
+
+    # Test post job
+    input_value = "1"
     result = app.job_menu_screen()
     assert result == "post_job"
 
@@ -1141,7 +1176,7 @@ def test_job_menu_screen(monkeypatch):
 
 def test_post_job(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "Jhonn", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(prompt):
@@ -1163,19 +1198,29 @@ def test_post_job(monkeypatch, capfd):
         if prompt == TYPE_JOB_SALARY_MESSAGE:
             return "80000"
     
+    def broadcast_notification(*args):
+        nonlocal broadcast_notification_execution
+
+        assert len(args) == 2
+        broadcast_notification_execution += 1
+    
     # Replaces input buildt-in function with mock_input function
     monkeypatch.setattr(builtins, "input", mock_input)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces User broadcast_new_job_notification method by broadcast_notification function
+    monkeypatch.setattr(User, "broadcast_new_job_notification", broadcast_notification)
 
     # Test save successful
 
     # Replaces Job save method by a lambda function that returns None
     monkeypatch.setattr(Job, "save", lambda *args: None)
     input_counter = 0
+    broadcast_notification_execution = 0
     result = app.post_job()
     assert input_counter == 5
     assert result == "go_back"
+    assert broadcast_notification_execution == 1
     out, _ = capfd.readouterr()
     assert JOB_SAVED_MESSAGE in out 
 
@@ -1184,15 +1229,57 @@ def test_post_job(monkeypatch, capfd):
     # Replaces Job save method by a lambda function that returns MAX_ALLOWED_JOBS_ERROR_MESSAGE
     monkeypatch.setattr(Job, "save", lambda *args: MAX_ALLOWED_JOBS_ERROR_MESSAGE)
     input_counter = 0
+    broadcast_notification_execution = 0
     result = app.post_job()
     assert input_counter == 5
+    assert broadcast_notification_execution == 0
     assert result == "go_back"
     out, _ = capfd.readouterr()
     assert MAX_ALLOWED_JOBS_ERROR_MESSAGE in out
 
+def test_delete_job_screen(monkeypatch, capfd):
+    app = App()
+    user = User("Testing", "Testing@12", "Jhonn", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
+    app.current_user = user
+    job = Job("SWE", "Just code!", "USF", "Tampa, FL", "80000")
+
+    def broadcast_notification(*args):
+        nonlocal broadcast_notification_execution
+
+        assert len(args) == 2
+        broadcast_notification_execution += 1
+
+    # Replaces App go_back method by a lambda function that returns go_back
+    monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
+    # Replaces user broadcast_job_applied_deleted_notification method by broadcast_notification function
+    monkeypatch.setattr(User, "broadcast_job_applied_deleted_notification", broadcast_notification)
+
+    # Test deleted successfully
+
+    # Replaces Job delete method by a lambda function that returns None
+    monkeypatch.setattr(Job, "delete", lambda *args: None)
+    broadcast_notification_execution = 0
+    result =  app.delete_job_screen(job)
+    assert result == "go_back"
+    assert broadcast_notification_execution == 1
+    out, _ = capfd.readouterr()
+    assert JOB_DELETED_MESSAGE in out
+
+    # Test error
+    
+    # Replaces Job delete method by a lambda function that returns None
+    monkeypatch.setattr(Job, "delete", lambda *args: JOB_NOT_FOUND_ERROR_MESSAGE)
+    broadcast_notification_execution = 0
+    result =  app.delete_job_screen(job)
+    assert result == "go_back"
+    assert broadcast_notification_execution == 0
+    out, _ = capfd.readouterr()
+    assert JOB_NOT_FOUND_ERROR_MESSAGE in out
+
+
 def test_guest_controls_screen(monkeypatch):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
     executed = ""
     
@@ -1259,7 +1346,7 @@ def test_guest_controls_screen(monkeypatch):
     
 def test_languages_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -1418,7 +1505,7 @@ def test_privacy_policy_screen(monkeypatch, capfd):
     monkeypatch.setattr(App, "handle_go_back", lambda *args: "handle_go_back")
     
     # Test guest controls
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
     input_value = "0"
     result = app.privacy_policy_screen()
@@ -1593,7 +1680,7 @@ def test_important_links_screen(monkeypatch):
     assert result == "reload"
 
     # Test languages
-    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0])
+    user = User("Testing", "Testing@12", "John", "Connor", LANGUAGES[0], STANDARD_TIER_NAME)
     app.current_user = user
     input_value = "8"    
     result = app.important_links_screen()
@@ -2020,8 +2107,8 @@ def test_search_students_result_screen(monkeypatch, capfd):
     # Replaces App reload_screen method by a lambda function that returns reload
     monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
 
-    user1 = User("Testing", "", "Peter", "Doe", "English")
-    user2 = User("Software", "", "John", "Doe", "English")
+    user1 = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "", "John", "Doe", "English", STANDARD_TIER_NAME)
     users_list = [user1, user2]
 
     # Test go back no results
@@ -2053,10 +2140,10 @@ def test_search_students_result_screen(monkeypatch, capfd):
 
 def test_show_student_options(monkeypatch):
     app = App()
-    user1 = User("Testing", "", "Peter", "Doe", "English")
+    user1 = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user1
 
-    user2 = User("Software", "", "John", "Doe", "English")
+    user2 = User("Software", "", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     def mock_input(*args):
         nonlocal input_value
@@ -2081,6 +2168,8 @@ def test_show_student_options(monkeypatch):
     monkeypatch.setattr(App, "disconnect_screen", lambda *args: "disconnect")
     # Replaces App request_connection_screen method by a lambda function that returns request
     monkeypatch.setattr(App, "request_connection_screen", lambda *args: "request")
+    # Relplaces App send_message_input_screen method by a lambda function that returns "send_message"
+    monkeypatch.setattr(App, "send_message_input_screen", lambda *args: "send_message")
     # Replaces App reload_screen method by a lambda function that returns reload
     monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
 
@@ -2102,6 +2191,10 @@ def test_show_student_options(monkeypatch):
 
     input_value = "2"
     result = app.show_student_options(user2)
+    assert result == "send_message"
+
+    input_value = "3"
+    result = app.show_student_options(user2)
     assert result == "reload"
 
     # Test is friend without profile
@@ -2113,6 +2206,10 @@ def test_show_student_options(monkeypatch):
     assert result == "disconnect"
 
     input_value = "1"
+    result = app.show_student_options(user2)
+    assert result == "send_message"
+
+    input_value = "2"
     result = app.show_student_options(user2)
     assert result == "reload"
 
@@ -2128,6 +2225,10 @@ def test_show_student_options(monkeypatch):
     assert result == "disconnect"
 
     input_value = "2"
+    result = app.show_student_options(user2)
+    assert result == "send_message"
+
+    input_value = "3"
     result = app.show_student_options(user2)
     assert result == "reload"
 
@@ -2147,15 +2248,19 @@ def test_show_student_options(monkeypatch):
 
     input_value = "0"
     result = app.show_student_options(user2)
+    assert result == "send_message"
+    
+    input_value = "1"
+    result = app.show_student_options(user2)
     assert result == "request"
 
-    input_value = "1"
+    input_value = "2"
     result = app.show_student_options(user2)
     assert result == "reload"
 
 def test_request_connection_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "", "Peter", "Doe", "English")
+    user = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user
 
     # Replaces App go_back method by a lambda function that returns go_back
@@ -2183,7 +2288,7 @@ def test_request_connection_screen(monkeypatch, capfd):
 
 def test_accept_connection_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "", "Peter", "Doe", "English")
+    user = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user
 
     # Replaces App go_back method by a lambda function that returns go_back
@@ -2211,7 +2316,7 @@ def test_accept_connection_screen(monkeypatch, capfd):
 
 def test_reject_connection_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "", "Peter", "Doe", "English")
+    user = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user
 
     # Replaces App go_back method by a lambda function that returns go_back
@@ -2239,7 +2344,7 @@ def test_reject_connection_screen(monkeypatch, capfd):
 
 def test_disconnect_screen(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "", "Peter", "Doe", "English")
+    user = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user
 
     # Replaces App go_back method by a lambda function that returns go_back
@@ -2267,8 +2372,8 @@ def test_disconnect_screen(monkeypatch, capfd):
 
 def test_my_network_screen(monkeypatch, capfd):
     app = App() 
-    user1 = User("Testing", "", "Peter", "Doe", "English")
-    user2 = User("Software", "", "John", "Doe", "English")
+    user1 = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -2325,8 +2430,8 @@ def test_my_network_screen(monkeypatch, capfd):
 
 def test_pending_friend_requests_screen(monkeypatch, capfd):
     app = App() 
-    user1 = User("Testing", "", "Peter", "Doe", "English")
-    user2 = User("Software", "", "John", "Doe", "English")
+    user1 = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
+    user2 = User("Software", "", "John", "Doe", "English", STANDARD_TIER_NAME)
 
     User.users = {
         "Testing": user1,
@@ -2383,7 +2488,7 @@ def test_pending_friend_requests_screen(monkeypatch, capfd):
 
 def test_user_dashboard(monkeypatch, capfd):
     app = App()
-    user = User("Testing", "", "Peter", "Doe", "English")
+    user = User("Testing", "", "Peter", "Doe", "English", STANDARD_TIER_NAME)
     app.current_user = user
 
     def mock_input(*args):
@@ -2392,9 +2497,14 @@ def test_user_dashboard(monkeypatch, capfd):
         prompt = args[1]
         assert prompt == SELECT_OPTION_MESSAGE
         return input_value
+    
+    def pop_notification(user):
+        return user.notifications.pop()
 
     # Replaces App handle_input method by mock_input
     monkeypatch.setattr(App, "handle_input", mock_input)
+    # Replaces User pop_notification method by pop_notification
+    monkeypatch.setattr(User, "pop_notification", pop_notification)
     # Replaces App go_back method by a lambda function that returns go_back
     monkeypatch.setattr(App, "go_back", lambda *args: "go_back")
     # Replaces App job_menu_screen function by a lambda function that returns job_menu
@@ -2415,6 +2525,10 @@ def test_user_dashboard(monkeypatch, capfd):
     monkeypatch.setattr(App, "my_network_screen", lambda *args: "my_network")
     # Replaces App pending_friend_requests_screen method by a lambda function that returns friend_requests
     monkeypatch.setattr(App, "pending_friend_requests_screen", lambda *args: "friend_requests")
+    # Replaces App inbox_screen method by a lambda function that returns inbox
+    monkeypatch.setattr(App, "inbox_screen", lambda *args: "inbox")
+    # Replaces App send_message method by a lambda function that returns send_message
+    monkeypatch.setattr(App, "send_message_screen", lambda *args: "send_message")
     # Replaces App reload_screen method by a lambda function that returns reload
     monkeypatch.setattr(App, "reload_screen", lambda *args: "reload")
 
@@ -2422,6 +2536,16 @@ def test_user_dashboard(monkeypatch, capfd):
     input_value = "0"
     result = app.user_dashboard()
     assert result == "job_menu"
+    out, _ = capfd.readouterr()
+    assert LAST_APPLICATION_SEVEN_DAYS_AGO_MESSAGE in out
+    assert "Notification 1" not in out
+
+    user.notifications = ["Notification 1", "Notification 2"]
+    result = app.user_dashboard()
+    assert result == "job_menu"
+    out, _ = capfd.readouterr()
+    assert "Notification 1" in out
+    assert "Notification 2" in out
 
     # Test search students    
     input_value = "1"
@@ -2452,6 +2576,14 @@ def test_user_dashboard(monkeypatch, capfd):
     input_value = "6"
     result = app.user_dashboard()
     assert result == "show_profile"
+    out, _ = capfd.readouterr()
+    assert DO_NOT_FORGET_PROFILE_MESSAGE in out
+
+    user.profile = Profile()
+    result = app.user_dashboard()
+    assert result == "show_profile"
+    out, _ = capfd.readouterr()
+    assert DO_NOT_FORGET_PROFILE_MESSAGE not in out
 
     # Test my network
     input_value = "7"
@@ -2462,21 +2594,37 @@ def test_user_dashboard(monkeypatch, capfd):
     input_value = "8"
     result = app.user_dashboard()
     assert result == "friend_requests"
-
-    # Test reload
-    input_value = "9"
-    result = app.user_dashboard()
-    assert result == "reload"
     out, _ = capfd.readouterr()
     assert PENDING_FRIEND_REQUEST_MESSAGE not in out
 
-    # Test pending friend request
     user.received_friend_requests = ["user2"]
-    input_value = "9"
     result = app.user_dashboard()
-    assert result == "reload"
+    assert result == "friend_requests"
     out, _ = capfd.readouterr()
     assert PENDING_FRIEND_REQUEST_MESSAGE in out
+
+    # Test inbox
+    input_value = "9"
+    result = app.user_dashboard()
+    assert result == "inbox"   
+
+    # Test send  message
+    input_value = "10"
+    result = app.user_dashboard()
+    assert result == "send_message"
+    out, _ = capfd.readouterr()
+    assert UNREAD_MESSAGES_MESSAGE not in out
+
+    user.inbox = {0: Message("user2", "Message", None)}
+    result = app.user_dashboard()
+    assert result == "send_message"
+    out, _ = capfd.readouterr()
+    assert UNREAD_MESSAGES_MESSAGE in out   
+
+    # Test reload
+    input_value = "11"
+    result = app.user_dashboard()
+    assert result == "reload"
 
     # Test go back
     input_value = GO_BACK_KEY
